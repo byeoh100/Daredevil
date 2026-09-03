@@ -27,7 +27,7 @@
 int main() {
     GameBoard my_board;
     my_board.load_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    my_board.print();
+    my_board.print_fen_status();
 
     return 0;
 }

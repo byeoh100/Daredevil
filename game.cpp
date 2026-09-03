@@ -24,8 +24,11 @@ void GameBoard::print() {
         {"_", "_", "_", "_", "_", "_", "_", "_"}
     };
 
+    u64 bits = 0;
+
     for(size_t i = 0; i < 12; i++) {
         u64 board_state = all_pieces[i];
+        bits |= board_state;
         while(board_state != 0ULL) {
             int lsb_index = std::countr_zero(board_state);
             int rank = lsb_index / 8;
@@ -43,6 +46,8 @@ void GameBoard::print() {
         }
         std::cout << "\n";
     }
+    std::cout << "\n";
+    std::cout << "bits: " << bits;
     std::cout << "\n";
 }
 
@@ -106,7 +111,40 @@ void GameBoard::load_from_fen(std::string fen) {
         }
     }
 
-    // fen 1-5
+    to_move = (fen_tokens[1] == "w") ? Color::WHITE : Color::BLACK;
+
+    // castle_rights = 4 bits in an 8 bit num
+    // <---dead 4 bits---> bit 3 | bit 2 | bit 1 | bit 0
+    //                       q       k       Q       K
+    castle_rights = 0;
+    const std::string& castle_string = fen_tokens[2];
+    if(castle_string != "-") {
+        for(const char& c : castle_string) {
+            if(c == 'K') castle_rights |= (1U);
+            if(c == 'Q') castle_rights |= (1U << 1);
+            if(c == 'k') castle_rights |= (1U << 2);
+            if(c == 'q') castle_rights |= (1U << 3);
+        }
+    }
+
+    // en passant = convert ASCII to Square (assuming lowercase)
+    // a = 97 -> h = 104, nums are nums
+    // square = rank * 8 + file
+    const std::string& en_passant_string = fen_tokens[3];
+    if(en_passant_string == "-") {
+        en_passant_target = Square::NO_SQUARE;
+    }
+    else {
+        char file_char = en_passant_string[0];
+        char rank_char = en_passant_string[1];
+
+        // need validation here
+        en_passant_target = static_cast<Square>(((rank_char - '1') * 8) + (file_char - 'a'));
+    }
+
+    half_move = std::stoi(fen_tokens[4]);
+    full_move = std::stoi(fen_tokens[5]);
+
 }
 
 void GameBoard::reset() {
@@ -114,3 +152,46 @@ void GameBoard::reset() {
 
     load_from_fen(reset_fen);
 }
+
+void GameBoard::print_fen_status() {
+    std::string castle_rights_string = "";
+    if(to_move == (to_move & 1U)) castle_rights_string += "K";
+    if(to_move == (to_move & 1U << 1)) castle_rights_string += "Q";
+    if(to_move == (to_move & 1U << 2)) castle_rights_string += "k";
+    if(to_move == (to_move & 1U << 3)) castle_rights_string += "q";
+
+    std::string en_passant_target_string = "";
+    if(en_passant_target == Square::NO_SQUARE) {
+        en_passant_target_string = "-";
+    }
+    else {
+        char file_char = (en_passant_target % 8) + 'a';
+        char rank_char = (en_passant_target / 8) + '1';
+        en_passant_target_string += file_char;
+        en_passant_target_string += rank_char;
+    }
+    
+    print();
+    std::cout << "To move: " << ((to_move == Color::WHITE) ? "white" : "black");
+    std::cout << "\n";
+
+    std::cout << "Castling rights: " << castle_rights_string;
+    std::cout << "\n";
+
+    std::cout << "En passant square: " << en_passant_target_string;
+    std::cout << "\n";
+    
+    std::cout << "Half move clock: " << half_move;
+    std::cout << "\n";
+
+    std::cout << "Full move clock: " << full_move;
+    std::cout << "\n";
+}
+
+// TODO FOR TMRW:
+// get bits for FILE_A in types by manually getting them with print funcs
+// use that to make the file_masks
+// do the same for ranks to get rank_masks
+// take that to create the pawn masks because you need to bound the left and right walls
+// take the pawn masks and pregen the pawn attacks lookup table
+// test

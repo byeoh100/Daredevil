@@ -17,6 +17,10 @@ class GameBoard {
     private:
         Color to_move;
         std::array<u64, 12> all_pieces{};
+        uint8_t castle_rights;
+        Square en_passant_target;
+        int half_move;
+        int full_move;
 
     public:
         void set_piece(Piece piece, int board_idx);
@@ -24,4 +28,5 @@ class GameBoard {
         void load_from_fen(std::string fen);
         void print();
         void print_pieces();
+        void print_fen_status();
 };
