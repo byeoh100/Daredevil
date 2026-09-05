@@ -11,4 +11,6 @@
 #include <stdexcept>
 #include <sstream>
 
+void print_bitboard(u64 bitboard);
+
 Piece char_to_piece(char c);

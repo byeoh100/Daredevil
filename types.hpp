@@ -87,11 +87,31 @@ enum Rank {
     RANK_8,
 };
 
-constexpr u64 FILE_A_MASK = 0x
-access with file_mask[File];
+const u64 FILE_A_MASK = 0x0101010101010101;
+// access with file_masks[File];
 constexpr std::array<u64, 8> file_masks = {
+    FILE_A_MASK,
+    FILE_A_MASK << 1, // FILE B
+    FILE_A_MASK << 2, // FILE C
+    FILE_A_MASK << 3, // ...
+    FILE_A_MASK << 4,
+    FILE_A_MASK << 5,
+    FILE_A_MASK << 6,
+    FILE_A_MASK << 7, // FILE H
+};
 
-}
+const u64 RANK_1_MASK = 0xff;
+// access with rank_masks[Rank]
+constexpr std::array<u64, 8> rank_masks = {
+    RANK_1_MASK,
+    RANK_1_MASK << 8,  // RANK 2
+    RANK_1_MASK << 16, // RANK 3
+    RANK_1_MASK << 24, // ...
+    RANK_1_MASK << 32,
+    RANK_1_MASK << 40,
+    RANK_1_MASK << 48,
+    RANK_1_MASK << 56, // RANK 8
+};
 
 enum CastleRights {
     WHITE_KINGSIDE,

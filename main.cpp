@@ -1,5 +1,6 @@
 #include "types.hpp"
 #include "game.hpp"
+#include "attacks.hpp"
 
 #include <iostream>
 #include <cstdint>
@@ -26,8 +27,10 @@
 
 int main() {
     GameBoard my_board;
-    my_board.load_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    my_board.print_fen_status();
+    my_board.reset();
+
+    u64 pawn_masks = move_gen::mask_pawn_attacks(my_board.get_piece(Piece::WHITE_PAWN), Color::WHITE);
+    print_bitboard(pawn_masks);
 
     return 0;
 }

@@ -1,6 +1,6 @@
 #include "game.hpp"
 
-void GameBoard::set_piece(Piece piece, int idx) {
+void GameBoard::set_piece(Piece piece, Square idx) {
     u64 bit_piece = 1ULL << idx;
     for(u64 &board_piece : all_pieces) {
         // if a piece already exists at that spot remove it
@@ -8,6 +8,10 @@ void GameBoard::set_piece(Piece piece, int idx) {
     }
 
     all_pieces[piece] |= bit_piece;
+}
+
+u64 GameBoard::get_piece(Piece piece) {
+    return all_pieces[piece];
 }
 
 void GameBoard::print() {
@@ -53,8 +57,8 @@ void GameBoard::print() {
 
 void GameBoard::print_pieces() {
     for(const auto &piece : all_pieces) {
-        for (int rank = 7; rank >= 0; rank--) {
-            for (int file = 0; file < 8; file++) {
+        for(int rank = 7; rank >= 0; rank--) {
+            for(int file = 0; file < 8; file++) {
                 int square = rank * 8 + file;
                 
                 if ((piece >> square) & 1ULL) {
@@ -105,7 +109,7 @@ void GameBoard::load_from_fen(std::string fen) {
         else {
             Piece piece = char_to_piece(c);
             if(piece != Piece::NO_PIECE) {
-                set_piece(piece, rank * 8 + file);
+                set_piece(piece, static_cast<Square>(rank * 8 + file));
                 file++;
             }
         }
@@ -145,6 +149,12 @@ void GameBoard::load_from_fen(std::string fen) {
     half_move = std::stoi(fen_tokens[4]);
     full_move = std::stoi(fen_tokens[5]);
 
+}
+
+void GameBoard::init() {
+    std::string init_fen = "8/8/8/8/8/8/8/8 w KQkq - 0 1";
+
+    load_from_fen(init_fen);
 }
 
 void GameBoard::reset() {

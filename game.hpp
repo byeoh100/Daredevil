@@ -23,10 +23,14 @@ class GameBoard {
         int full_move;
 
     public:
-        void set_piece(Piece piece, int board_idx);
+        void set_piece(Piece piece, Square board_idx);
+        u64 get_piece(Piece piece);
+
+        void init();
         void reset();
         void load_from_fen(std::string fen);
+
         void print();
-        void print_pieces();
+        void print_pieces(); // make it print an individual piece?
         void print_fen_status();
 };
