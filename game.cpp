@@ -108,14 +108,14 @@ void GameBoard::load_from_fen(std::string fen) {
         }
         else {
             Piece piece = char_to_piece(c);
-            if(piece != Piece::NO_PIECE) {
+            if(piece != NO_PIECE) {
                 set_piece(piece, static_cast<Square>(rank * 8 + file));
                 file++;
             }
         }
     }
 
-    to_move = (fen_tokens[1] == "w") ? Color::WHITE : Color::BLACK;
+    to_move = (fen_tokens[1] == "w") ? WHITE : BLACK;
 
     // castle_rights = 4 bits in an 8 bit num
     // <---dead 4 bits---> bit 3 | bit 2 | bit 1 | bit 0
@@ -136,7 +136,7 @@ void GameBoard::load_from_fen(std::string fen) {
     // square = rank * 8 + file
     const std::string& en_passant_string = fen_tokens[3];
     if(en_passant_string == "-") {
-        en_passant_target = Square::NO_SQUARE;
+        en_passant_target = NO_SQUARE;
     }
     else {
         char file_char = en_passant_string[0];
@@ -171,7 +171,7 @@ void GameBoard::print_fen_status() {
     if(to_move == (to_move & 1U << 3)) castle_rights_string += "q";
 
     std::string en_passant_target_string = "";
-    if(en_passant_target == Square::NO_SQUARE) {
+    if(en_passant_target == NO_SQUARE) {
         en_passant_target_string = "-";
     }
     else {
@@ -182,7 +182,7 @@ void GameBoard::print_fen_status() {
     }
     
     print();
-    std::cout << "To move: " << ((to_move == Color::WHITE) ? "white" : "black");
+    std::cout << "To move: " << ((to_move == WHITE) ? "white" : "black");
     std::cout << "\n";
 
     std::cout << "Castling rights: " << castle_rights_string;

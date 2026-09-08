@@ -27,10 +27,14 @@
 
 int main() {
     GameBoard my_board;
-    my_board.reset();
+    my_board.init();
 
-    u64 pawn_masks = move_gen::mask_pawn_attacks(my_board.get_piece(Piece::WHITE_PAWN), Color::WHITE);
-    print_bitboard(pawn_masks);
+    move_gen::init_king_attacks_array();
+
+    for(int i = 0; i < 64; i++) {
+        print_bitboard(move_gen::get_king_attack(static_cast<Square>(i)));
+        std::cout << "\n";
+    }
 
     return 0;
 }
