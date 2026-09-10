@@ -16,15 +16,18 @@
 class GameBoard {
     private:
         Color to_move;
-        std::array<u64, 12> all_pieces{};
+        std::array<u64, 12> all_pieces{0};
         uint8_t castle_rights;
         Square en_passant_target;
         int half_move;
         int full_move;
+        u64 occupancy_board;
 
     public:
         void set_piece(Piece piece, Square board_idx);
         u64 get_piece(Piece piece);
+        void update_occupancy();
+        u64 get_occupancy();
 
         void init();
         void reset();

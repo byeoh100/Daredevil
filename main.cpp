@@ -26,15 +26,16 @@
 // dev_tool::
 
 int main() {
-    GameBoard my_board;
-    my_board.init();
+    GameBoard b;
+    b.init();
+    b.set_piece(WHITE_PAWN, A7);
+    b.set_piece(BLACK_BISHOP, E3);
+    b.set_piece(BLACK_PAWN, D6);
+    b.set_piece(WHITE_ROOK, A3);
 
-    move_gen::init_king_attacks_array();
+    u64 a = move_gen::mask_rook_blockers(b.get_piece(WHITE_ROOK), b.get_occupancy());
 
-    for(int i = 0; i < 64; i++) {
-        print_bitboard(move_gen::get_king_attack(static_cast<Square>(i)));
-        std::cout << "\n";
-    }
+    print_bitboard(a);
 
     return 0;
 }

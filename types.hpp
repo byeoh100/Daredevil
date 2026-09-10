@@ -113,6 +113,9 @@ constexpr std::array<u64, 8> rank_masks = {
     RANK_1_MASK << 56, // RANK 8
 };
 
+const u64 CORNER_SQUARES = 9295429630892703873ULL;
+const u64 EDGE_SQUARES = (file_masks[FILE_A] | file_masks[FILE_H] | rank_masks[RANK_1] | rank_masks[RANK_8]) & ~(CORNER_SQUARES);
+
 enum CastleRights {
     WHITE_KINGSIDE,
     WHITE_QUEENSIDE,

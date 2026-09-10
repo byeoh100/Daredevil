@@ -10,6 +10,9 @@ namespace move_gen {
 
         std::array<u64, 64> king_attacks;
 
+        // array for rook attacks
+        //4*2^12 + 6*2^11 + 36*2^10 sized = 102,400
+
     } // namespace
 
     u64 mask_pawn_attacks(u64 pawn_board, Color color) {
@@ -108,5 +111,42 @@ namespace move_gen {
     u64 get_king_attack(Square idx) {
         return king_attacks[idx];
     }
+
+    u64 mask_rook_blockers(u64 rook_board, u64 occupancy) {
+        // mask the raw row first - the edges
+        // then just mask on top of an occupancy board
+        // those are your blockers
+
+        if(!(std::has_single_bit(rook_board))) throw std::length_error("mask_rook_blockers() took more than 1 bit.");
+
+        int bit_index = std::countr_zero(rook_board);
+        int rank = bit_index / 8;
+        int file = bit_index % 8;
+
+        u64 raw_attacks = (file_masks[file] | rank_masks[rank]) & ~(rook_board);
+        u64 blocker_mask;
+
+        if(rook_board & CORNER_SQUARES) {
+            blocker_mask = raw_attacks & EDGE_SQUARES;
+        }
+        else if(rook_board & EDGE_SQUARES) {
+            blocker_mask = raw_attacks & ~(CORNER_SQUARES);
+            if (rank == 0) blocker_mask &= ~rank_masks[RANK_8];
+            if (rank == 7) blocker_mask &= ~rank_masks[RANK_1];
+            if (file == 0) blocker_mask &= ~file_masks[FILE_H];
+            if (file == 7) blocker_mask &= ~file_masks[FILE_A];
+        }
+        else {
+            blocker_mask = raw_attacks & ~(EDGE_SQUARES);
+        }
+
+        return blocker_mask & occupancy;
+
+    }
+
+    // now do a raycast one (easy)
+    // also an enum blocker masks one which basically turn all relevant rows + col
+    // into an N bit number and count from 0 to max size and that is your different
+    // bits within the actual blocker mask to change
 
 } // namespace move_gen

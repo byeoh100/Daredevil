@@ -34,4 +34,11 @@ namespace move_gen {
     void init_king_attacks_array();
     u64 get_king_attack(Square idx);
 
+    u64 mask_rook_blockers(u64 rook_board, u64 occupancy);
+
+    // potential high order function that executes on all rook blockers on a square
+    // for now we can just give it a square and tell it to enumerate all combos
+    // maybe can extend to be rook/bishop overload
+    u64 enumerate_rook_blockers();
+
 } // namespace move_gen

@@ -8,6 +8,7 @@ void GameBoard::set_piece(Piece piece, Square idx) {
     }
 
     all_pieces[piece] |= bit_piece;
+    update_occupancy(); // INEFFICIENT HERE RIGHT NOW
 }
 
 u64 GameBoard::get_piece(Piece piece) {
@@ -198,10 +199,16 @@ void GameBoard::print_fen_status() {
     std::cout << "\n";
 }
 
-// TODO FOR TMRW:
-// get bits for FILE_A in types by manually getting them with print funcs
-// use that to make the file_masks
-// do the same for ranks to get rank_masks
-// take that to create the pawn masks because you need to bound the left and right walls
-// take the pawn masks and pregen the pawn attacks lookup table
-// test
+// has not been embedded into init functions yet
+// make it more efficient / maybe split into init/update
+// currently in setpiece but inefficient
+void GameBoard::update_occupancy() {
+    occupancy_board = 0;
+    for(const u64& piece : all_pieces) {
+        occupancy_board |= piece;
+    }
+}
+
+u64 GameBoard::get_occupancy() {
+    return occupancy_board;
+}
