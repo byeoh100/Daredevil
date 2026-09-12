@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <algorithm>
+#include <random>
 
 // also maybe make a pawn push mask (>> 8 or << 8)
 // should be trivial
@@ -34,11 +35,13 @@ namespace move_gen {
     void init_king_attacks_array();
     u64 get_king_attack(Square idx);
 
-    u64 mask_rook_blockers(u64 rook_board, u64 occupancy);
-
+    // cleanup -> make things const
+    u64 get_rook_blocker_mask(Square sq);
+    u64 raycast_rook_attacks(Square sq, u64 blocker_board);
     // potential high order function that executes on all rook blockers on a square
     // for now we can just give it a square and tell it to enumerate all combos
     // maybe can extend to be rook/bishop overload
-    u64 enumerate_rook_blockers();
+    void init_rook_blockers();
+    u64 index_rook_attacks(Square sq, u64 blocker_board);
 
 } // namespace move_gen

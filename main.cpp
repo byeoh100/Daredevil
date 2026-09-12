@@ -1,6 +1,7 @@
 #include "types.hpp"
 #include "game.hpp"
 #include "attacks.hpp"
+#include "utils.hpp"
 
 #include <iostream>
 #include <cstdint>
@@ -31,11 +32,13 @@ int main() {
     b.set_piece(WHITE_PAWN, A7);
     b.set_piece(BLACK_BISHOP, E3);
     b.set_piece(BLACK_PAWN, D6);
-    b.set_piece(WHITE_ROOK, A3);
+    b.set_piece(BLACK_PAWN, C1);
+    b.set_piece(WHITE_ROOK, B3);
 
-    u64 a = move_gen::mask_rook_blockers(b.get_piece(WHITE_ROOK), b.get_occupancy());
+    print_bitboard(b.get_occupancy());
+    move_gen::init_rook_blockers();
+    print_bitboard(move_gen::index_rook_attacks(C3, b.get_occupancy()));
 
-    print_bitboard(a);
 
     return 0;
 }

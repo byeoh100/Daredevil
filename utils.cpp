@@ -13,9 +13,10 @@ void print_bitboard(u64 bitboard) {
         }
         std::cout << "\n";
     }
+    std::cout << "\n";
 }
 
-Piece char_to_piece(char c) {
+Piece char_to_piece(const char& c) {
     switch(c) {
         case 'k':
             return BLACK_KING;

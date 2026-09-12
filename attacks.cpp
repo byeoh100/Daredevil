@@ -12,6 +12,36 @@ namespace move_gen {
 
         // array for rook attacks
         //4*2^12 + 6*2^11 + 36*2^10 sized = 102,400
+        std::array<u64, 102400> rook_attacks{};
+        std::array<u64, 64> rook_magics;
+        std::array<int, 64> rook_offsets;
+
+        // Helpers
+        u64 gen_magic_candidate() {
+            std::random_device rd;
+            std::mt19937_64 gen(rd());
+            std::uniform_int_distribution<uint64_t> dist(0, std::numeric_limits<uint64_t>::max());
+
+            return dist(gen) & dist(gen) & dist(gen);
+        }
+
+        void init_rook_offsets() {
+            int offset = 0;
+
+            for(int sq = 0; sq < 64; sq++) {
+                rook_offsets[sq] = offset;
+                u64 rook_board = 1ULL << sq;
+                if(rook_board & CORNER_SQUARES) {
+                    offset += (1ULL << 12);
+                }
+                else if(rook_board & EDGE_SQUARES) {
+                    offset += (1ULL << 11);
+                }
+                else {
+                    offset += (1ULL << 10);
+                }
+            }
+        }
 
     } // namespace
 
@@ -112,17 +142,14 @@ namespace move_gen {
         return king_attacks[idx];
     }
 
-    u64 mask_rook_blockers(u64 rook_board, u64 occupancy) {
+    u64 get_rook_blocker_mask(Square sq) {
         // mask the raw row first - the edges
-        // then just mask on top of an occupancy board
         // those are your blockers
 
-        if(!(std::has_single_bit(rook_board))) throw std::length_error("mask_rook_blockers() took more than 1 bit.");
+        int rank = sq / 8;
+        int file = sq % 8;
 
-        int bit_index = std::countr_zero(rook_board);
-        int rank = bit_index / 8;
-        int file = bit_index % 8;
-
+        u64 rook_board = 1ULL << sq;
         u64 raw_attacks = (file_masks[file] | rank_masks[rank]) & ~(rook_board);
         u64 blocker_mask;
 
@@ -140,13 +167,116 @@ namespace move_gen {
             blocker_mask = raw_attacks & ~(EDGE_SQUARES);
         }
 
-        return blocker_mask & occupancy;
-
+        return blocker_mask;
     }
 
-    // now do a raycast one (easy)
-    // also an enum blocker masks one which basically turn all relevant rows + col
-    // into an N bit number and count from 0 to max size and that is your different
-    // bits within the actual blocker mask to change
+    u64 raycast_rook_attacks(Square sq, u64 blocker_board) {
+        int rank = sq / 8;
+        int file = sq % 8;
+        u64 cross_check = rank_masks[rank] | file_masks[file];
+
+        u64 target_board = 1ULL << sq;
+        if((target_board | cross_check) != (blocker_board | cross_check)) {
+            throw std::invalid_argument("raycast_rook_attacks() - invalid blocker_board");
+        }
+
+        auto fire_ray = [file](u64 start, const u64& blocker, const Direction& dir) {
+            int local_file = file;
+            u64 ray = 0ULL;
+            while((start | blocker) != blocker) {
+                if((local_file == 0 && dir == WEST) || (local_file == 7 && dir == EAST)) break;
+                start = shift(start, dir);
+                ray |= start;
+                (dir == WEST) ? local_file-- : (dir == EAST) ? local_file++ : 0;
+            }
+            return ray;
+        };
+
+        return (
+            fire_ray(target_board, blocker_board, NORTH)
+            | fire_ray(target_board, blocker_board, EAST)
+            | fire_ray(target_board, blocker_board, SOUTH)
+            | fire_ray(target_board, blocker_board, WEST)
+        );
+    }
+
+    // the bits are read as (b = blocker, given bit settings = 0 -> N - 1)
+    // bits read smallest to greatest sq of blocker on a bitboard
+    // rank:
+    // 7
+    // 6 11
+    // 5 10
+    // 4 9
+    // 3 8
+    // 2 7
+    // 1 6
+    // 0 b 0 1 2 3 4 5
+    // \ 0 1 2 3 4 5 6 7 file
+    // *bit settings for rook on a1*
+    void init_rook_blockers() {
+        init_rook_offsets();
+        auto write_bit_settings = [](u64 mask, unsigned int bits) {
+            u64 output = 0ULL;
+            while(mask != 0U) {
+                int lsb_index = std::countr_zero(mask);
+                u64 write_bit = 1ULL << lsb_index;
+                if((1U & bits) != 0) {
+                    output |= write_bit;
+                }
+                bits >>= 1;
+                mask &= (mask - 1);
+            }
+
+            return output;
+        };
+
+        for(int i = 0; i < 1; i++) {
+            // get_rook_blocker_mask() only returns the blocker mask now
+            u64 blocker_mask = get_rook_blocker_mask(static_cast<Square>(i));
+            // std::cout << "Square: " << i << "\n";
+            // print_bitboard(blocker_mask);
+            // tested and good to go
+
+            int relevant_bits = std::popcount(blocker_mask);
+            u64 candidate = gen_magic_candidate();
+            unsigned int bit_settings = 0U;
+
+            while(bit_settings < (1U << relevant_bits)) {
+                std::cout << bit_settings << "\n";
+                // we have to find a way to grab the squares of the relevant bits
+                u64 written_settings = write_bit_settings(blocker_mask, bit_settings);
+                // tested and good to go
+                u64 cast_rook_attacks = raycast_rook_attacks(static_cast<Square>(i), written_settings);
+
+                // gen candidate and try
+                // write to attack table
+                // if collision we start over
+                // except if collision is the same attack table
+                int idx = static_cast<int>(rook_offsets[i] + ((candidate * written_settings) >> (64 - relevant_bits)));
+                u64 attack_set = rook_attacks[idx];
+                if(attack_set == 0ULL || attack_set == cast_rook_attacks) {
+                    rook_attacks[idx] = cast_rook_attacks;
+                    bit_settings++;
+                }
+                else {
+                    candidate = gen_magic_candidate();
+                    bit_settings = 0U;
+                    std::fill(rook_attacks.begin() + rook_offsets[i], 
+                    rook_attacks.begin() + rook_offsets[i] + (1U << relevant_bits), 
+                    0ULL);
+                }
+            }
+
+            rook_magics[i] = candidate;
+        }
+    }
+
+    // magics take quite a while so we run this once and then hardcode
+
+    u64 index_rook_attacks(Square sq, u64 blocker_board) {
+        int idx = static_cast<int>(rook_offsets[sq] + ((rook_magics[sq] * blocker_board) >> (64 - std::popcount(get_rook_blocker_mask(static_cast<Square>(sq)))))); 
+        return rook_attacks[idx];
+    }
+
 
 } // namespace move_gen

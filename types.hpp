@@ -115,6 +115,7 @@ constexpr std::array<u64, 8> rank_masks = {
 
 const u64 CORNER_SQUARES = 9295429630892703873ULL;
 const u64 EDGE_SQUARES = (file_masks[FILE_A] | file_masks[FILE_H] | rank_masks[RANK_1] | rank_masks[RANK_8]) & ~(CORNER_SQUARES);
+const u64 BOARD_EDGE = CORNER_SQUARES | EDGE_SQUARES;
 
 enum CastleRights {
     WHITE_KINGSIDE,
@@ -123,3 +124,15 @@ enum CastleRights {
     BLACK_QUEENSIDE
 };
 
+// perhaps some error handling for if south doesn't work
+enum Direction : int {
+    NORTH = 8,
+    EAST = 1,
+    SOUTH = -8,
+    WEST = -1,
+
+    NORTHEAST = 9,
+    SOUTHEAST = -7,
+    SOUTHWEST = -9,
+    NORTHWEST = 7
+};
