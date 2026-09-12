@@ -36,8 +36,12 @@ int main() {
     b.set_piece(WHITE_ROOK, B3);
 
     print_bitboard(b.get_occupancy());
-    move_gen::init_rook_blockers();
-    print_bitboard(move_gen::index_rook_attacks(C3, b.get_occupancy()));
+    move_gen::init_rook_attacks_array();
+    print_bitboard(move_gen::index_rook_attacks(A1, b.get_occupancy()));
+    print_bitboard(move_gen::index_rook_attacks(D3, b.get_occupancy()));
+    print_bitboard(move_gen::index_rook_attacks(D8, b.get_occupancy()));
+    print_bitboard(move_gen::index_rook_attacks(E1, b.get_occupancy()));
+    print_bitboard(move_gen::index_rook_attacks(G5, b.get_occupancy()));
 
 
     return 0;

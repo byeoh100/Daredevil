@@ -41,7 +41,7 @@ namespace move_gen {
     // potential high order function that executes on all rook blockers on a square
     // for now we can just give it a square and tell it to enumerate all combos
     // maybe can extend to be rook/bishop overload
-    void init_rook_blockers();
+    void init_rook_attacks_array();
     u64 index_rook_attacks(Square sq, u64 blocker_board);
 
 } // namespace move_gen

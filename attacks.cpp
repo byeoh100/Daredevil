@@ -13,17 +13,82 @@ namespace move_gen {
         // array for rook attacks
         //4*2^12 + 6*2^11 + 36*2^10 sized = 102,400
         std::array<u64, 102400> rook_attacks{};
-        std::array<u64, 64> rook_magics;
+        std::array<u64, 64> rook_magics { // hardcoded magics generated with init
+            612489663141167106ULL,
+            36063982465110144ULL,
+            72066666367836162ULL,
+            72066407857127680ULL,
+            10520410931393208336ULL,
+            36030998189965313ULL,
+            72063091604586500ULL,
+            14051232214234964224ULL,
+            144255963146321952ULL,
+            90353742410490112ULL,
+            1441293168271187968ULL,
+            36732553205651456ULL,
+            2307109680969941120ULL,
+            577023771009879048ULL,
+            146929959351354376ULL,
+            1153484455651583106ULL,
+            141287248363553ULL,
+            8101978203542782024ULL,
+            72200531893944384ULL,
+            9799871272216170496ULL,
+            864973703045195776ULL,
+            18155685820826112ULL,
+            2522020189391816770ULL,
+            3460666668945252417ULL,
+            141173427552266ULL,
+            4679523639493768ULL,
+            145522876493078528ULL,
+            4902274851316695048ULL,
+            9314156517232218368ULL,
+            562958544405512ULL,
+            5066558170826756ULL,
+            11538258537797141668ULL,
+            141012374654048ULL,
+            18023471669846016ULL,
+            1171499128518086788ULL,
+            10448360000328835328ULL,
+            4688810404275556384ULL,
+            6090133342198440961ULL,
+            2307250710699317760ULL,
+            9029329107288129ULL,
+            587860489933979684ULL,
+            585468157787914242ULL,
+            9007757868957732ULL,
+            145277852919595016ULL,
+            1225542083495198736ULL,
+            563019210032128ULL,
+            18023263365758981ULL,
+            36733586124177412ULL,
+            127262423605314944ULL,
+            35186859311232ULL,
+            153124655075459200ULL,
+            140943648358528ULL,
+            6958202178956165504ULL,
+            563018807412224ULL,
+            1155331737543312384ULL,
+            4683884351044192384ULL,
+            9223653581188792386ULL,
+            72093057651081730ULL,
+            175926156528833ULL,
+            168924637165003009ULL,
+            2814767217510402ULL,
+            577023775542363142ULL,
+            565222260647940ULL,
+            576461306499170374ULL
+        };
         std::array<int, 64> rook_offsets;
 
         // Helpers
-        u64 gen_magic_candidate() {
-            std::random_device rd;
-            std::mt19937_64 gen(rd());
-            std::uniform_int_distribution<uint64_t> dist(0, std::numeric_limits<uint64_t>::max());
+        // u64 gen_magic_candidate() {
+        //     std::random_device rd;
+        //     std::mt19937_64 gen(rd());
+        //     std::uniform_int_distribution<uint64_t> dist(0, std::numeric_limits<uint64_t>::max());
 
-            return dist(gen) & dist(gen) & dist(gen);
-        }
+        //     return dist(gen) & dist(gen) & dist(gen);
+        // }
 
         void init_rook_offsets() {
             int offset = 0;
@@ -213,7 +278,7 @@ namespace move_gen {
     // 0 b 0 1 2 3 4 5
     // \ 0 1 2 3 4 5 6 7 file
     // *bit settings for rook on a1*
-    void init_rook_blockers() {
+    void init_rook_attacks_array() {
         init_rook_offsets();
         auto write_bit_settings = [](u64 mask, unsigned int bits) {
             u64 output = 0ULL;
@@ -230,50 +295,42 @@ namespace move_gen {
             return output;
         };
 
-        for(int i = 0; i < 1; i++) {
-            // get_rook_blocker_mask() only returns the blocker mask now
+        for(int i = 0; i < 64; i++) {
             u64 blocker_mask = get_rook_blocker_mask(static_cast<Square>(i));
-            // std::cout << "Square: " << i << "\n";
-            // print_bitboard(blocker_mask);
-            // tested and good to go
 
             int relevant_bits = std::popcount(blocker_mask);
-            u64 candidate = gen_magic_candidate();
+            // u64 candidate = gen_magic_candidate();
             unsigned int bit_settings = 0U;
 
             while(bit_settings < (1U << relevant_bits)) {
-                std::cout << bit_settings << "\n";
-                // we have to find a way to grab the squares of the relevant bits
                 u64 written_settings = write_bit_settings(blocker_mask, bit_settings);
-                // tested and good to go
                 u64 cast_rook_attacks = raycast_rook_attacks(static_cast<Square>(i), written_settings);
 
-                // gen candidate and try
-                // write to attack table
-                // if collision we start over
-                // except if collision is the same attack table
-                int idx = static_cast<int>(rook_offsets[i] + ((candidate * written_settings) >> (64 - relevant_bits)));
-                u64 attack_set = rook_attacks[idx];
-                if(attack_set == 0ULL || attack_set == cast_rook_attacks) {
-                    rook_attacks[idx] = cast_rook_attacks;
-                    bit_settings++;
-                }
-                else {
-                    candidate = gen_magic_candidate();
-                    bit_settings = 0U;
-                    std::fill(rook_attacks.begin() + rook_offsets[i], 
-                    rook_attacks.begin() + rook_offsets[i] + (1U << relevant_bits), 
-                    0ULL);
-                }
-            }
+                // **USED FOR MAGIC GENERATION**
+                // int idx = static_cast<int>(rook_offsets[i] + ((candidate * written_settings) >> (64 - relevant_bits)));
+                // u64 attack_set = rook_attacks[idx];
+                // if(attack_set == 0ULL || attack_set == cast_rook_attacks) {
+                //     rook_attacks[idx] = cast_rook_attacks;
+                //     bit_settings++;
+                // }
+                // else {
+                //     candidate = gen_magic_candidate();
+                //     bit_settings = 0U;
+                //     std::fill(rook_attacks.begin() + rook_offsets[i], 
+                //     rook_attacks.begin() + rook_offsets[i] + (1U << relevant_bits), 
+                //     0ULL);
+                // }
 
-            rook_magics[i] = candidate;
+                int idx = static_cast<int>(rook_offsets[i] + ((rook_magics[i] * written_settings) >> (64 - relevant_bits)));
+                rook_attacks[idx] = cast_rook_attacks;
+                bit_settings++;
+            }
+            // rook_magics[i] = candidate;
         }
     }
 
-    // magics take quite a while so we run this once and then hardcode
-
     u64 index_rook_attacks(Square sq, u64 blocker_board) {
+        blocker_board &= get_rook_blocker_mask(sq);
         int idx = static_cast<int>(rook_offsets[sq] + ((rook_magics[sq] * blocker_board) >> (64 - std::popcount(get_rook_blocker_mask(static_cast<Square>(sq)))))); 
         return rook_attacks[idx];
     }
