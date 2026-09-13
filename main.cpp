@@ -34,15 +34,14 @@ int main() {
     b.set_piece(BLACK_PAWN, D6);
     b.set_piece(BLACK_PAWN, C1);
     b.set_piece(WHITE_ROOK, B3);
+    b.set_piece(WHITE_ROOK, F6);
 
     print_bitboard(b.get_occupancy());
     move_gen::init_rook_attacks_array();
-    print_bitboard(move_gen::index_rook_attacks(A1, b.get_occupancy()));
-    print_bitboard(move_gen::index_rook_attacks(D3, b.get_occupancy()));
-    print_bitboard(move_gen::index_rook_attacks(D8, b.get_occupancy()));
-    print_bitboard(move_gen::index_rook_attacks(E1, b.get_occupancy()));
-    print_bitboard(move_gen::index_rook_attacks(G5, b.get_occupancy()));
-
+    move_gen::init_bishop_attacks_array();
+    print_bitboard(move_gen::index_rook_attacks(E4, b.get_occupancy()));
+    print_bitboard(move_gen::index_bishop_attacks(B2, b.get_occupancy()));
+    print_bitboard(move_gen::index_queen_attacks(D4, b.get_occupancy()));
 
     return 0;
 }

@@ -11,9 +11,10 @@ namespace move_gen {
         std::array<u64, 64> king_attacks;
 
         // array for rook attacks
-        //4*2^12 + 6*2^11 + 36*2^10 sized = 102,400
+        // move possibilities corner/edge/interior:
+        // 4*2^12 + 6*2^11 + 36*2^10 sized = 102,400
         std::array<u64, 102400> rook_attacks{};
-        std::array<u64, 64> rook_magics { // hardcoded magics generated with init
+        const std::array<u64, 64> rook_magics { // hardcoded magics generated with init
             612489663141167106ULL,
             36063982465110144ULL,
             72066666367836162ULL,
@@ -81,6 +82,78 @@ namespace move_gen {
         };
         std::array<int, 64> rook_offsets;
 
+        // array for bishop attacks
+        // move possibilities(bottom left of square) center(d4)/inner ring(c3)/outer ring(b2) + edge/corner:
+        // 4*2^9 + 12*2^7 + 44*2^5 + 4*2^6 = 5248
+        std::array<u64, 5248> bishop_attacks{};
+        std::array<u64, 64> bishop_magics{
+            722308776141258816ULL,
+            13836263130780532752ULL,
+            4516796185315344ULL,
+            6830728872466432ULL,
+            723958175624103232ULL,
+            72356670059053056ULL,
+            576746630159008264ULL,
+            1080952219526250496ULL,
+            4693041366526726657ULL,
+            9513858783772934306ULL,
+            4611976392714911744ULL,
+            83580072018434ULL,
+            92514141866240ULL,
+            10956136597825257600ULL,
+            2305862802873008326ULL,
+            1154083155888710148ULL,
+            76631579656996928ULL,
+            145241191624484354ULL,
+            454864215744716808ULL,
+            4629842288432971906ULL,
+            9260526873444630784ULL,
+            35188677545984ULL,
+            19703559789478408ULL,
+            577023703348150532ULL,
+            3448094771904778ULL,
+            624557510111385ULL,
+            1171015069111290882ULL,
+            1197093351916032ULL,
+            2986273589436416ULL,
+            9809025810206573065ULL,
+            595128263274336256ULL,
+            578998571173676080ULL,
+            2454748015754223808ULL,
+            37192217897075712ULL,
+            74835552239714ULL,
+            2314870001825742976ULL,
+            4504157974176256ULL,
+            466235890352384ULL,
+            1134702442923072ULL,
+            919439150700167680ULL,
+            7892332046353408ULL,
+            9244216651375714304ULL,
+            9227031282687455744ULL,
+            18586428157984896ULL,
+            578184941424083200ULL,
+            11821966682804453920ULL,
+            1441726117902812168ULL,
+            4904424944174240128ULL,
+            3468361266090741003ULL,
+            1225544387275784640ULL,
+            9367487826304176136ULL,
+            293019988456112416ULL,
+            144132849150590993ULL,
+            185405282746385ULL,
+            2596351643318502080ULL,
+            73262660998694192ULL,
+            1190357952530233344ULL,
+            10415690842641408ULL,
+            9367487255062596608ULL,
+            2315976108530862080ULL,
+            2305843046799018500ULL,
+            1233986316692357396ULL,
+            6927178376314651168ULL,
+            1299297322957552128ULL
+        };
+        std::array<int, 64> bishop_offsets;
+
         // Helpers
         // u64 gen_magic_candidate() {
         //     std::random_device rd;
@@ -107,6 +180,40 @@ namespace move_gen {
                 }
             }
         }
+
+        void init_bishop_offsets() {
+            int offset = 0;
+            u64 outer_ring = (file_masks[FILE_B] | file_masks[FILE_G] | rank_masks[RANK_2] | rank_masks[RANK_7]) & ~(BOARD_EDGE);
+            u64 inner_ring = ((file_masks[FILE_C] | file_masks[FILE_F] | rank_masks[RANK_3] | rank_masks[RANK_6]) & ~(BOARD_EDGE)) & ~(outer_ring);
+            u64 center = (((file_masks[FILE_D] | file_masks[FILE_E] | rank_masks[RANK_4] | rank_masks[RANK_5]) & ~(BOARD_EDGE)) & ~(outer_ring)) & ~(inner_ring);
+
+            for(int sq = 0; sq < 64; sq++) {
+                bishop_offsets[sq] = offset;
+                u64 bishop_board = 1ULL << sq;
+                if(bishop_board & CORNER_SQUARES) {
+                    offset += (1ULL << 6);
+                }
+                else if(bishop_board & (EDGE_SQUARES | outer_ring)) {
+                    offset += (1ULL << 5);
+                }
+                else if(bishop_board & inner_ring) {
+                    offset += (1ULL << 7);
+                }
+                else if(bishop_board & center){
+                    offset += (1ULL << 9);
+                }
+            }
+        }
+
+        u64 fire_ray(u64 start, const u64& blocker, const Direction& dir) {
+            u64 ray = 0ULL;
+            while(start != 0ULL) {
+                start = shift(start, dir);
+                ray |= start;
+                if ((start | blocker) == blocker) break;
+            }
+            return ray;
+        };
 
     } // namespace
 
@@ -244,19 +351,6 @@ namespace move_gen {
         if((target_board | cross_check) != (blocker_board | cross_check)) {
             throw std::invalid_argument("raycast_rook_attacks() - invalid blocker_board");
         }
-
-        auto fire_ray = [file](u64 start, const u64& blocker, const Direction& dir) {
-            int local_file = file;
-            u64 ray = 0ULL;
-            while((start | blocker) != blocker) {
-                if((local_file == 0 && dir == WEST) || (local_file == 7 && dir == EAST)) break;
-                start = shift(start, dir);
-                ray |= start;
-                (dir == WEST) ? local_file-- : (dir == EAST) ? local_file++ : 0;
-            }
-            return ray;
-        };
-
         return (
             fire_ray(target_board, blocker_board, NORTH)
             | fire_ray(target_board, blocker_board, EAST)
@@ -333,6 +427,99 @@ namespace move_gen {
         blocker_board &= get_rook_blocker_mask(sq);
         int idx = static_cast<int>(rook_offsets[sq] + ((rook_magics[sq] * blocker_board) >> (64 - std::popcount(get_rook_blocker_mask(static_cast<Square>(sq)))))); 
         return rook_attacks[idx];
+    }
+
+    u64 get_bishop_blocker_mask(Square sq) {
+        int rank = sq / 8;
+        int file = sq % 8;
+
+        u64 bishop_board = 1ULL << sq;
+        int diag = 7 + rank - file;
+        int antidiag = rank + file;
+
+        u64 raw_attacks = (diagonal_masks[diag] | antidiagonal_masks[antidiag]) & ~(bishop_board);
+
+        return raw_attacks & ~(CORNER_SQUARES) & ~(EDGE_SQUARES);
+    }
+
+    u64 raycast_bishop_attacks(Square sq, u64 blocker_board) {
+        int rank = sq / 8;
+        int file = sq % 8;
+        int diag = 7 + rank - file;
+        int antidiag = rank + file;
+        u64 cross_check = diagonal_masks[diag] | antidiagonal_masks[antidiag];
+
+        u64 target_board = 1ULL << sq;
+        if((target_board | cross_check) != (blocker_board | cross_check)) {
+            throw std::invalid_argument("raycast_bishop_attacks() - invalid blocker_board");
+        }
+        return (
+            fire_ray(target_board, blocker_board, NORTHEAST)
+            | fire_ray(target_board, blocker_board, SOUTHEAST)
+            | fire_ray(target_board, blocker_board, SOUTHWEST)
+            | fire_ray(target_board, blocker_board, NORTHWEST)
+        );
+    }
+
+    void init_bishop_attacks_array() {
+        init_bishop_offsets();
+        auto write_bit_settings = [](u64 mask, unsigned int bits) {
+            u64 output = 0ULL;
+            while(mask != 0U) {
+                int lsb_index = std::countr_zero(mask);
+                u64 write_bit = 1ULL << lsb_index;
+                if((1U & bits) != 0) {
+                    output |= write_bit;
+                }
+                bits >>= 1;
+                mask &= (mask - 1);
+            }
+
+            return output;
+        };
+
+        for(int i = 0; i < 64; i++) {
+            u64 blocker_mask = get_bishop_blocker_mask(static_cast<Square>(i));
+
+            int relevant_bits = std::popcount(blocker_mask);
+            // u64 candidate = gen_magic_candidate();
+            unsigned int bit_settings = 0U;
+
+            while(bit_settings < (1U << relevant_bits)) {
+                u64 written_settings = write_bit_settings(blocker_mask, bit_settings);
+                u64 cast_bishop_attacks = raycast_bishop_attacks(static_cast<Square>(i), written_settings);
+
+                // **USED FOR MAGIC GENERATION**
+                // int idx = static_cast<int>(bishop_offsets[i] + ((candidate * written_settings) >> (64 - relevant_bits)));
+                // u64 attack_set = bishop_attacks[idx];
+                // if(attack_set == 0ULL || attack_set == cast_bishop_attacks) {
+                //     bishop_attacks[idx] = cast_bishop_attacks;
+                //     bit_settings++;
+                // }
+                // else {
+                //     candidate = gen_magic_candidate();
+                //     bit_settings = 0U;
+                //     std::fill(bishop_attacks.begin() + bishop_offsets[i], 
+                //     bishop_attacks.begin() + bishop_offsets[i] + (1U << relevant_bits), 
+                //     0ULL);
+                // }
+
+                int idx = static_cast<int>(bishop_offsets[i] + ((bishop_magics[i] * written_settings) >> (64 - relevant_bits)));
+                bishop_attacks[idx] = cast_bishop_attacks;
+                bit_settings++;
+            }
+            // bishop_magics[i] = candidate;
+        }
+    }
+
+    u64 index_bishop_attacks(Square sq, u64 blocker_board) {
+        blocker_board &= get_bishop_blocker_mask(sq);
+        int idx = static_cast<int>(bishop_offsets[sq] + ((bishop_magics[sq] * blocker_board) >> (64 - std::popcount(get_bishop_blocker_mask(static_cast<Square>(sq)))))); 
+        return bishop_attacks[idx];
+    }
+
+    u64 index_queen_attacks(Square sq, u64 blocker_board) {
+        return index_rook_attacks(sq, blocker_board) | index_bishop_attacks(sq, blocker_board);    
     }
 
 

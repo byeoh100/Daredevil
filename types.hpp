@@ -53,6 +53,19 @@ enum Piece {
 // move right = << 1;
 // move up = << 8
 
+// perhaps some error handling for if south doesn't work
+enum Direction : int {
+    NORTH = 8,
+    EAST = 1,
+    SOUTH = -8,
+    WEST = -1,
+
+    NORTHEAST = 9,
+    SOUTHEAST = -7,
+    SOUTHWEST = -9,
+    NORTHWEST = 7
+};
+
 enum Square : int {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
@@ -113,6 +126,102 @@ constexpr std::array<u64, 8> rank_masks = {
     RANK_1_MASK << 56, // RANK 8
 };
 
+// Cumulative file masking (useful for cleaning up bulk shifts)
+constexpr std::array<u64, 8> leftcum_file_masks = {
+    file_masks[FILE_A],
+    file_masks[FILE_A] | file_masks[FILE_B],
+    file_masks[FILE_A] | file_masks[FILE_B] | file_masks[FILE_C],
+    file_masks[FILE_A] | file_masks[FILE_B] | file_masks[FILE_C] | file_masks[FILE_D],
+    file_masks[FILE_A] | file_masks[FILE_B] | file_masks[FILE_C] | file_masks[FILE_D] | file_masks[FILE_E],
+    file_masks[FILE_A] | file_masks[FILE_B] | file_masks[FILE_C] | file_masks[FILE_D] | file_masks[FILE_E] | file_masks[FILE_F],
+    file_masks[FILE_A] | file_masks[FILE_B] | file_masks[FILE_C] | file_masks[FILE_D] | file_masks[FILE_E] | file_masks[FILE_F] | file_masks[FILE_G],
+    file_masks[FILE_A] | file_masks[FILE_B] | file_masks[FILE_C] | file_masks[FILE_D] | file_masks[FILE_E] | file_masks[FILE_F] | file_masks[FILE_G] | file_masks[FILE_H]
+};
+
+constexpr std::array<u64, 8> rightcum_file_masks = {
+    file_masks[FILE_H],
+    file_masks[FILE_H] | file_masks[FILE_G],
+    file_masks[FILE_H] | file_masks[FILE_G] | file_masks[FILE_F],
+    file_masks[FILE_H] | file_masks[FILE_G] | file_masks[FILE_F] | file_masks[FILE_E],
+    file_masks[FILE_H] | file_masks[FILE_G] | file_masks[FILE_F] | file_masks[FILE_E] | file_masks[FILE_D],
+    file_masks[FILE_H] | file_masks[FILE_G] | file_masks[FILE_F] | file_masks[FILE_E] | file_masks[FILE_D] | file_masks[FILE_C],
+    file_masks[FILE_H] | file_masks[FILE_G] | file_masks[FILE_F] | file_masks[FILE_E] | file_masks[FILE_D] | file_masks[FILE_C] | file_masks[FILE_B],
+    file_masks[FILE_H] | file_masks[FILE_G] | file_masks[FILE_F] | file_masks[FILE_E] | file_masks[FILE_D] | file_masks[FILE_C] | file_masks[FILE_B] | file_masks[FILE_A]
+};
+
+// refactor some masks with this
+constexpr u64 shift(u64 board, const Direction& dir, const int amt = 1) {
+    switch(dir) {
+        case NORTH:
+            return board << (8 * amt);
+            break;
+        case SOUTH:
+            return board >> (8 * amt);
+            break;
+        case EAST:
+            return (board & ~rightcum_file_masks[amt - 1]) << amt;
+            break;
+        case WEST:
+            return (board & ~leftcum_file_masks[amt - 1]) >> amt;
+            break;
+        case NORTHEAST:
+            return (board & ~rightcum_file_masks[amt - 1]) << (9 * amt);
+            break;
+        case SOUTHEAST:
+            return (board & ~rightcum_file_masks[amt - 1]) >> (7 * amt);
+            break;
+        case SOUTHWEST:
+            return (board & ~leftcum_file_masks[amt - 1]) >> (9 * amt);
+            break;
+        case NORTHWEST:
+            return (board & ~leftcum_file_masks[amt - 1]) << (7 * amt);
+            break;
+        default:
+            return board;
+    }
+}
+
+// Longest diagonals
+const u64 DIAG_8_MASK = 9241421688590303745ULL; // Square a1 -> h8
+const u64 ANTIDIAG_8_MASK = 72624976668147840ULL; // Square h1 -> a8
+
+// 7 + rank - file
+constexpr std::array<u64, 15> diagonal_masks = {
+    shift(DIAG_8_MASK, EAST, 7),
+    shift(DIAG_8_MASK, EAST, 6),
+    shift(DIAG_8_MASK, EAST, 5),
+    shift(DIAG_8_MASK, EAST, 4),
+    shift(DIAG_8_MASK, EAST, 3),
+    shift(DIAG_8_MASK, EAST, 2),
+    shift(DIAG_8_MASK, EAST),
+    DIAG_8_MASK,
+    shift(DIAG_8_MASK, WEST),
+    shift(DIAG_8_MASK, WEST, 2),
+    shift(DIAG_8_MASK, WEST, 3),
+    shift(DIAG_8_MASK, WEST, 4),
+    shift(DIAG_8_MASK, WEST, 5),
+    shift(DIAG_8_MASK, WEST, 6),
+    shift(DIAG_8_MASK, WEST, 7),
+};
+// rank + file
+constexpr std::array<u64, 15> antidiagonal_masks = {
+    shift(ANTIDIAG_8_MASK, WEST, 7),
+    shift(ANTIDIAG_8_MASK, WEST, 6),
+    shift(ANTIDIAG_8_MASK, WEST, 5),
+    shift(ANTIDIAG_8_MASK, WEST, 4),
+    shift(ANTIDIAG_8_MASK, WEST, 3),
+    shift(ANTIDIAG_8_MASK, WEST, 2),
+    shift(ANTIDIAG_8_MASK, WEST),
+    ANTIDIAG_8_MASK,
+    shift(ANTIDIAG_8_MASK, EAST),
+    shift(ANTIDIAG_8_MASK, EAST, 2),
+    shift(ANTIDIAG_8_MASK, EAST, 3),
+    shift(ANTIDIAG_8_MASK, EAST, 4),
+    shift(ANTIDIAG_8_MASK, EAST, 5),
+    shift(ANTIDIAG_8_MASK, EAST, 6),
+    shift(ANTIDIAG_8_MASK, EAST, 7),
+};
+
 const u64 CORNER_SQUARES = 9295429630892703873ULL;
 const u64 EDGE_SQUARES = (file_masks[FILE_A] | file_masks[FILE_H] | rank_masks[RANK_1] | rank_masks[RANK_8]) & ~(CORNER_SQUARES);
 const u64 BOARD_EDGE = CORNER_SQUARES | EDGE_SQUARES;
@@ -122,17 +231,4 @@ enum CastleRights {
     WHITE_QUEENSIDE,
     BLACK_KINGSIDE,
     BLACK_QUEENSIDE
-};
-
-// perhaps some error handling for if south doesn't work
-enum Direction : int {
-    NORTH = 8,
-    EAST = 1,
-    SOUTH = -8,
-    WEST = -1,
-
-    NORTHEAST = 9,
-    SOUTHEAST = -7,
-    SOUTHWEST = -9,
-    NORTHWEST = 7
 };

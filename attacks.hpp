@@ -44,4 +44,11 @@ namespace move_gen {
     void init_rook_attacks_array();
     u64 index_rook_attacks(Square sq, u64 blocker_board);
 
+    u64 get_bishop_blocker_mask(Square sq);
+    u64 raycast_bishop_attacks(Square sq, u64 blocker_board);
+    void init_bishop_attacks_array();
+    u64 index_bishop_attacks(Square sq, u64 blocker_board);
+
+    u64 index_queen_attacks(Square sq, u64 blocker_board);
+
 } // namespace move_gen
