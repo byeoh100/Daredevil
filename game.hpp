@@ -21,13 +21,19 @@ class GameBoard {
         Square en_passant_target;
         int half_move;
         int full_move;
+        u64 white_board;
+        u64 black_board;
         u64 occupancy_board;
 
     public:
         void set_piece(Piece piece, Square board_idx);
         u64 get_piece(Piece piece);
-        void update_occupancy();
-        u64 get_occupancy();
+        std::span<const u64> get_all_pieces_view();
+        void init_boards();
+        void update_boards(Piece piece);
+        u64 get_occupancy_board();
+        u64 get_white_board();
+        u64 get_black_board();
 
         void init();
         void reset();

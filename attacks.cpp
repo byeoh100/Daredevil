@@ -217,9 +217,35 @@ namespace move_gen {
 
     } // namespace
 
-    u64 mask_pawn_attacks(u64 pawn_board, Color color) {
-        u64 left_attacks = 0;
-        u64 right_attacks = 0;
+    // get attacks in bulk
+    // u64 get_under_attack(std::span<const u64> all_pieces, u64 blocker_board, Color color) {
+    //     if(color == WHITE) {
+    //         const u64 friend_board = all_pieces[WHITE_KING]
+    //             | all_pieces[WHITE_QUEEN]
+    //             | all_pieces[WHITE_ROOK]
+    //             | all_pieces[WHITE_BISHOP] 
+    //             | all_pieces[WHITE_KNIGHT] 
+    //             | all_pieces[WHITE_PAWN];
+    //         const u64 pawn_board = all_pieces[BLACK_]
+    //         const u64 knight_board = all_pieces[BLACK_]
+    //         const u64 king_board = all_pieces[BLACK_]
+    //         const u64 rook_board = all_pieces[BLACK_]
+    //         const u64 bishop_board = all_pieces[BLACK_]
+    //         const u64 queen_board = all_pieces[BLACK_]
+    //     }
+    //     else {
+    //         friend_board = black_board;
+    //         enemy_board = white_board;
+    //     }
+
+    //     u64 under_attack = mask_pawn_attacks();
+
+    // }
+    bool is_sq_attacked(Square sq, std::span<const u64> all_pieces, u64 blocker_board, Color color);
+
+    u64 mask_pawn_attacks(const u64 pawn_board, Color color) {
+        u64 left_attacks = 0ULL;
+        u64 right_attacks = 0ULL;
 
         if(color == WHITE) {
             left_attacks = (pawn_board & ~(file_masks[FILE_A])) << 7;
@@ -231,6 +257,19 @@ namespace move_gen {
         }
 
         return left_attacks | right_attacks;
+    }
+
+    u64 mask_pawn_quiets(u64 pawn_board, Color color, u64 blocker_board) {
+        if(color == WHITE) {
+            pawn_board = shift(pawn_board, NORTH) & ~(blocker_board);
+            u64 double_move = shift(pawn_board, NORTH) & ~(blocker_board) & (rank_masks[RANK_4]);
+            return pawn_board | double_move;
+        }
+        else {
+            pawn_board = shift(pawn_board, SOUTH) & ~(blocker_board);
+            u64 double_move = shift(pawn_board, SOUTH) & ~(blocker_board) & (rank_masks[RANK_5]);
+            return pawn_board | double_move;
+        }
     }
 
     void init_pawn_attacks_array() {
@@ -256,7 +295,7 @@ namespace move_gen {
         }
     }
 
-    u64 mask_knight_attacks(u64 knight_board) {
+    u64 mask_knight_attacks(const u64 knight_board) {
         u64 file_ab = file_masks[FILE_A] | file_masks[FILE_B];
         u64 file_gh = file_masks[FILE_G] | file_masks[FILE_H];
         u64 rank_12 = rank_masks[RANK_1] | rank_masks[RANK_2];
@@ -290,7 +329,7 @@ namespace move_gen {
         return knight_attacks[idx];
     }
 
-    u64 mask_king_attacks(u64 king_board) {
+    u64 mask_king_attacks(const u64 king_board) {
         u64 north = (king_board & ~(rank_masks[RANK_8])) << 8;
         u64 north_east = (king_board & ~(rank_masks[RANK_8]) & ~(file_masks[FILE_H])) << 9;
         u64 east = (king_board & ~(file_masks[FILE_H])) << 1;
@@ -310,7 +349,7 @@ namespace move_gen {
         }
     }
 
-    u64 get_king_attack(Square idx) {
+    u64 get_legal_king_attacks(Square idx, ) {
         return king_attacks[idx];
     }
 

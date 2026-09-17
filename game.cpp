@@ -8,11 +8,15 @@ void GameBoard::set_piece(Piece piece, Square idx) {
     }
 
     all_pieces[piece] |= bit_piece;
-    update_occupancy(); // INEFFICIENT HERE RIGHT NOW
+    update_occupancy_board(); // INEFFICIENT HERE RIGHT NOW
 }
 
 u64 GameBoard::get_piece(Piece piece) {
     return all_pieces[piece];
+}
+
+std::span<const u64> get_all_piece_view() {
+    return all_pieces;
 }
 
 void GameBoard::print() {
@@ -202,13 +206,29 @@ void GameBoard::print_fen_status() {
 // has not been embedded into init functions yet
 // make it more efficient / maybe split into init/update
 // currently in setpiece but inefficient
-void GameBoard::update_occupancy() {
-    occupancy_board = 0;
-    for(const u64& piece : all_pieces) {
-        occupancy_board |= piece;
+void GameBoard::init_boards() {
+    white_board = 0;
+    black_board = 0;
+    for(int i = 0; i < 12; i++) {
+        (i < 6) ? white_board |= all_pieces[i] : black_board |= allpieces[i];
     }
+
+    occupancy_board = white_board | black_board;
 }
 
+void Gameboard::update_boards(Piece piece) {
+    (piece < 6) ? white_board |= all_pieces[piece] : black_board |= all_pieces[piece];
+    occupancy_board = white_board | black_board;
+}
 u64 GameBoard::get_occupancy() {
     return occupancy_board;
 }
+
+u64 Gameboard::get_white_board() {
+    return white_board;
+}
+u64 Gameboard::get_black_board() {
+    return black_board;
+}
+
+
