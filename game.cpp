@@ -8,14 +8,14 @@ void GameBoard::set_piece(Piece piece, Square idx) {
     }
 
     all_pieces[piece] |= bit_piece;
-    update_occupancy_board(); // INEFFICIENT HERE RIGHT NOW
+    update_boards(piece);
 }
 
-u64 GameBoard::get_piece(Piece piece) {
+u64 GameBoard::get_piece(Piece piece) const {
     return all_pieces[piece];
 }
 
-std::span<const u64> get_all_piece_view() {
+std::span<const u64> GameBoard::get_all_pieces_view() const {
     return all_pieces;
 }
 
@@ -92,6 +92,9 @@ void GameBoard::load_from_fen(std::string fen) {
     std::stringstream ss(fen);
     std::string token;
     std::vector<std::string> fen_tokens;
+
+    white_board = 0;
+    black_board = 0;
 
     while(std::getline(ss, token, ' ')) {
         fen_tokens.push_back(token);
@@ -203,32 +206,47 @@ void GameBoard::print_fen_status() {
     std::cout << "\n";
 }
 
-// has not been embedded into init functions yet
-// make it more efficient / maybe split into init/update
-// currently in setpiece but inefficient
-void GameBoard::init_boards() {
-    white_board = 0;
-    black_board = 0;
-    for(int i = 0; i < 12; i++) {
-        (i < 6) ? white_board |= all_pieces[i] : black_board |= allpieces[i];
-    }
-
-    occupancy_board = white_board | black_board;
-}
-
-void Gameboard::update_boards(Piece piece) {
+void GameBoard::update_boards(Piece piece) {
     (piece < 6) ? white_board |= all_pieces[piece] : black_board |= all_pieces[piece];
     occupancy_board = white_board | black_board;
 }
-u64 GameBoard::get_occupancy() {
+u64 GameBoard::get_occupancy() const {
     return occupancy_board;
 }
 
-u64 Gameboard::get_white_board() {
+u64 GameBoard::get_white_board() const {
     return white_board;
 }
-u64 Gameboard::get_black_board() {
+u64 GameBoard::get_black_board() const {
     return black_board;
 }
 
+std::tuple<u64, u64, u64, u64, u64, u64> GameBoard::get_white_pieces() const {
+    return {
+        all_pieces[WHITE_PAWN],
+        all_pieces[WHITE_KNIGHT],
+        all_pieces[WHITE_KING],
+        all_pieces[WHITE_ROOK],
+        all_pieces[WHITE_BISHOP],
+        all_pieces[WHITE_QUEEN]
+    };
+}
 
+std::tuple<u64, u64, u64, u64, u64, u64> GameBoard::get_black_pieces() const {
+    return {
+        all_pieces[BLACK_PAWN],
+        all_pieces[BLACK_KNIGHT],
+        all_pieces[BLACK_KING],
+        all_pieces[BLACK_ROOK],
+        all_pieces[BLACK_BISHOP],
+        all_pieces[BLACK_QUEEN]
+    };
+}
+
+Color GameBoard::get_to_move() const {
+    return to_move;
+}
+
+Square GameBoard::get_en_passant_target() const {
+    return en_passant_target;
+}

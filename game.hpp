@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <algorithm>
+#include <tuple>
 
 class GameBoard {
     private:
@@ -26,14 +27,17 @@ class GameBoard {
         u64 occupancy_board;
 
     public:
+        Color get_to_move() const;
         void set_piece(Piece piece, Square board_idx);
-        u64 get_piece(Piece piece);
-        std::span<const u64> get_all_pieces_view();
-        void init_boards();
+        u64 get_piece(Piece piece) const;
+        std::span<const u64> get_all_pieces_view() const;
+        Square get_en_passant_target() const;
         void update_boards(Piece piece);
-        u64 get_occupancy_board();
-        u64 get_white_board();
-        u64 get_black_board();
+        u64 get_occupancy() const;
+        u64 get_white_board() const;
+        u64 get_black_board() const;
+        std::tuple<u64, u64, u64, u64, u64, u64> get_white_pieces() const;
+        std::tuple<u64, u64, u64, u64, u64, u64> get_black_pieces() const;
 
         void init();
         void reset();

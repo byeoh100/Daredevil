@@ -27,13 +27,20 @@
 // dev_tool::
 
 int main() {
+    MoveList m;
     GameBoard b;
     b.init();
-    b.load_from_fen();
+    b.load_from_fen("8/8/8/8/p1P5/8/1N6/8 w - - 0 1");
+    move_gen::init_all_pieces();
 
+    move_gen::generate_moves(b, m);
 
-    print_bitboard(b.get_occupancy());
-    print_bitboard(move_gen::mask_pawn_quiets(b.get_piece(WHITE_PAWN), WHITE, b.get_occupancy()));
+    for(auto move : m.moves) {
+        if(move) {
+            auto decoded_move = move_gen::decode_move(move);
+            move_gen::print_move(decoded_move);
+        }
+    }
 
     return 0;
 }

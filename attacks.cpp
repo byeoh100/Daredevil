@@ -217,31 +217,13 @@ namespace move_gen {
 
     } // namespace
 
-    // get attacks in bulk
-    // u64 get_under_attack(std::span<const u64> all_pieces, u64 blocker_board, Color color) {
-    //     if(color == WHITE) {
-    //         const u64 friend_board = all_pieces[WHITE_KING]
-    //             | all_pieces[WHITE_QUEEN]
-    //             | all_pieces[WHITE_ROOK]
-    //             | all_pieces[WHITE_BISHOP] 
-    //             | all_pieces[WHITE_KNIGHT] 
-    //             | all_pieces[WHITE_PAWN];
-    //         const u64 pawn_board = all_pieces[BLACK_]
-    //         const u64 knight_board = all_pieces[BLACK_]
-    //         const u64 king_board = all_pieces[BLACK_]
-    //         const u64 rook_board = all_pieces[BLACK_]
-    //         const u64 bishop_board = all_pieces[BLACK_]
-    //         const u64 queen_board = all_pieces[BLACK_]
-    //     }
-    //     else {
-    //         friend_board = black_board;
-    //         enemy_board = white_board;
-    //     }
-
-    //     u64 under_attack = mask_pawn_attacks();
-
-    // }
-    bool is_sq_attacked(Square sq, std::span<const u64> all_pieces, u64 blocker_board, Color color);
+    void init_all_pieces() {
+        init_pawn_attacks_array();
+        init_knight_attacks_array();
+        init_king_attacks_array();
+        init_rook_attacks_array();
+        init_bishop_attacks_array();
+    }
 
     u64 mask_pawn_attacks(const u64 pawn_board, Color color) {
         u64 left_attacks = 0ULL;
@@ -349,7 +331,7 @@ namespace move_gen {
         }
     }
 
-    u64 get_legal_king_attacks(Square idx, ) {
+    u64 get_king_attack(Square idx) {
         return king_attacks[idx];
     }
 
@@ -561,5 +543,224 @@ namespace move_gen {
         return index_rook_attacks(sq, blocker_board) | index_bishop_attacks(sq, blocker_board);    
     }
 
+    // --------------------------------
+    // @@@ IN-GAME MOVE GENERATION @@@
+    // --------------------------------
+
+    void generate_moves(const GameBoard & game_board, MoveList & move_list) {
+        u64 blocker_board = game_board.get_occupancy();
+        Color color = game_board.get_to_move();
+
+        // Move encoding data
+        int source;
+        int target;
+
+        // Get the pieces that can move
+        auto [pawn, knight, king, rook, bishop, queen] = (color == WHITE) 
+            ? game_board.get_white_pieces() 
+            : game_board.get_black_pieces();
+        
+        auto friendly_pieces = (color == WHITE)
+            ? game_board.get_white_board()
+            : game_board.get_black_board();
+
+        auto enemy_pieces = (color == WHITE)
+            ? game_board.get_black_board()
+            : game_board.get_white_board();
+
+        // pawn moves
+        // update en passant sq if double move
+        // consider en passant sq if available
+        while(pawn) {
+            source = pop_lsb(pawn);
+            int push_amt;
+            Square double_lower;
+            Square double_upper;
+            Square promo_lower;
+            Square promo_upper;
+            Piece pawn_color;
+
+            if(color == WHITE) {
+                push_amt = 8;
+                double_lower = A2;
+                double_upper = H2;
+                promo_lower = A8;
+                promo_upper = H8;
+                pawn_color = WHITE_PAWN;
+            }
+            else {
+                push_amt = -8;
+                double_lower = A7;
+                double_upper = H7;
+                promo_lower = A1;
+                promo_upper = H1;
+                pawn_color = BLACK_PAWN;
+            }
+
+            target = source + push_amt;
+
+            if(!((1ULL << target) & blocker_board)) {
+                // Promotion
+                if(target >= promo_lower && target <= promo_upper) {
+                    for(MoveFlag promo : {PROMOTION_N, PROMOTION_B, PROMOTION_R, PROMOTION_Q})
+                        move_list.push(encode_move(source, target, pawn_color, promo));
+                }
+                // Single push
+                else {
+                    move_list.push(encode_move(source, target, pawn_color, QUIET_MOVE));
+                }
+
+                // Double push
+                if(source >= double_lower && source <= double_upper && !((1ULL << (target + push_amt)) & blocker_board)) {
+                    move_list.push(encode_move(source, target + push_amt, pawn_color, DOUBLE_MOVE));
+                }
+            }
+
+            // Attacks
+            u64 curr_pawn_attacks = get_pawn_attack(static_cast<Square>(source), color);
+            while(curr_pawn_attacks) {
+                target = pop_lsb(curr_pawn_attacks);
+                if((1ULL << target) & enemy_pieces) {
+                    if(target >= promo_lower && target <= promo_upper) {
+                        for(MoveFlag promo : {CAPTURE_PROMO_N, CAPTURE_PROMO_B, CAPTURE_PROMO_R, CAPTURE_PROMO_Q})
+                            move_list.push(encode_move(source, target, pawn_color, promo));
+                    }
+                    else {
+                        move_list.push(encode_move(source, target, pawn_color, CAPTURE));
+                    }
+                }
+                else if(game_board.get_en_passant_target() != NO_SQUARE && target == game_board.get_en_passant_target()) {
+                    move_list.push(encode_move(source, target, pawn_color, EN_PASSANT));
+                }
+            }
+
+        }
+
+        // knight straightforward
+        while(knight) {
+            Piece knight_color = (color == WHITE) ? WHITE_KNIGHT : BLACK_KNIGHT;
+
+            source = pop_lsb(knight);
+            u64 curr_knight_attacks = knight_attacks[source];
+            while(curr_knight_attacks) {
+                target = pop_lsb(curr_knight_attacks);
+                if((1ULL << target) & enemy_pieces) {
+                    move_list.push(encode_move(source, target, knight_color, CAPTURE));
+                }
+                else if(!((1ULL << target) & friendly_pieces)) {
+                    move_list.push(encode_move(source, target, knight_color, QUIET_MOVE));
+                }
+            }
+        }
+
+        // king already has explicit no move into check
+        // handle illegal moves with take backs for now
+        // if any king moves update the castling flags
+        
+
+        // slider moves straightforward
+    }
+
+    // get attacks in bulk
+    // u64 get_side_attacks(std::span<const u64> all_pieces, u64 blocker_board, Color color);
+
+    // }
+    bool is_sq_attacked(Square sq, const GameBoard& game_board, Color color) {
+        u64 blocker_board = game_board.get_occupancy();
+
+        // Get the pieces attacking COLOR
+        auto [pawn, knight, king, rook, bishop, queen] = (color == WHITE) 
+            ? game_board.get_black_pieces() 
+            : game_board.get_white_pieces();
+
+        if(
+            // rewrite to just index the array directly lmao
+            get_pawn_attack(sq, color) & pawn
+            || knight_attacks[sq] & knight
+            || king_attacks[sq] & king
+            || index_rook_attacks(sq, blocker_board) & rook
+            || index_bishop_attacks(sq, blocker_board) & bishop
+            || index_queen_attacks(sq, blocker_board) & queen
+        ) return true;
+
+        return false;
+    }
+
+    u64 get_legal_king_attacks(Square sq, const GameBoard& game_board, Color color) {
+        u64 attacks = king_attacks[sq];
+        u64 legal = 0ULL;
+        while(attacks != 0) {
+            int check_bit = std::countr_zero(attacks);
+            if(!is_sq_attacked(static_cast<Square>(check_bit), game_board, color)) legal |= 1ULL << check_bit;
+            attacks &= (attacks - 1);
+        }
+
+        // missing logic for behind the king
+
+        return legal;
+    }
+
+    u64 get_castling(Square idx, std::span<const u64> all_pieces, u64 blocker_board, Color color) {
+        // assume the flag is up
+        
+        // error if king out of pos
+
+        // check kingside rook
+        // check squares between
+        // check king in check
+        // OR castling
+        // perhaps change to bool function because we can't really return a bitboard
+        
+        // check same style queenside
+        return 0;
+    }
+
+    // encoding key bits:
+    // <---dead 8 bits---> | 16-23 | 12-15 | 6-11 | 0-5
+    //                       flags   piece   tgt    src
+    std::uint32_t encode_move(int source, int target, Piece piece, MoveFlag flag) {
+        // insert error handling for empty move values
+        std::uint32_t encoded_move = 0;
+        encoded_move |= (static_cast<std::uint32_t>(source));
+        encoded_move |= (static_cast<std::uint32_t>(target)) << 6;
+        encoded_move |= (static_cast<std::uint32_t>(piece)) << 12;
+        encoded_move |= (static_cast<std::uint32_t>(flag)) << 16;
+
+        return encoded_move;
+    }
+
+
+    Move decode_move(std::uint32_t encoded_move) {
+        Move decoded_move;
+        
+        decoded_move.source = static_cast<Square>(encoded_move & ((1 << 6) - 1)); // 6b mask
+        encoded_move >>= 6;
+        decoded_move.target = static_cast<Square>(encoded_move & ((1 << 6) - 1));
+        encoded_move >>= 6;
+        decoded_move.piece = static_cast<Piece>(encoded_move & ((1 << 4) - 1)); // 4b mask
+        encoded_move >>= 4;
+        decoded_move.flag = static_cast<MoveFlag>(encoded_move & ((1 << 8) - 1)); // 8b mask
+
+        return decoded_move;
+    }
+
+    void print_move(const Move& move) {
+        std::array<std::string, 12> piece_names = {"King(W)", "Queen(W)", "Rook(W)", "Bishop(W)", "Knight(W)", "Pawn(W)", "King(B)", "Queen(B)", "Rook(B)", "Bishop(B)", "Knight(B)", "Pawn(B)"};
+        std::array<std::string, 16> flag_names = {
+            "Quiet", "Double", "Castle Kingside", "Castle Queenside", "Capture", "En Passant", "", "",
+            "Promotion Knight", "Promotion Bishop", "Promotion Rook", "Promotion Queen",
+            "Capture Promotion Knight", "Capture Promotion Bishop", "Capture Promotion Rook", "Capture Promotion Queen",
+        };
+
+        char source_file = (static_cast<int>(move.source) % 8) + 'a';
+        char source_rank = (static_cast<int>(move.source) / 8) + '1';
+        char target_file = (static_cast<int>(move.target) % 8) + 'a';
+        char target_rank = (static_cast<int>(move.target) / 8) + '1';
+        std::string piece = piece_names[move.piece];
+        std::string flag = flag_names[move.flag];
+
+        std::cout << flag << " | " << piece << " | " << source_file << source_rank << " -> " << target_file << target_rank << "\n";
+
+    }
 
 } // namespace move_gen

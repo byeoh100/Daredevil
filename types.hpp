@@ -232,3 +232,54 @@ enum CastleRights {
     BLACK_KINGSIDE,
     BLACK_QUEENSIDE
 };
+
+enum MoveFlag : std::uint8_t {
+    // regular moves
+    QUIET_MOVE = 0b0000,
+    DOUBLE_MOVE = 0b0001,
+    // bit 2 set = castling
+    CASTLE_KINGSIDE = 0b0010,
+    CASTLE_QUEENSIDE = 0b0011,
+    // bit 3 set = capture
+    CAPTURE = 0b0100,
+    EN_PASSANT = 0b0101,
+    // gap of 6 and 7
+    // bit 4 set = promotion
+    PROMOTION_N = 0b1000,
+    PROMOTION_B = 0b1001,
+    PROMOTION_R = 0b1010,
+    PROMOTION_Q = 0b1011,
+    // set bit 3 and 4 for cap + promo
+    CAPTURE_PROMO_N = 0b1100,
+    CAPTURE_PROMO_B = 0b1101,
+    CAPTURE_PROMO_R = 0b1110,
+    CAPTURE_PROMO_Q = 0b1111
+};
+
+struct Move {
+    Square source = NO_SQUARE;
+    Square target = NO_SQUARE;
+    Piece piece = NO_PIECE;
+    MoveFlag flag;
+};
+
+struct MoveList {
+    std::array<std::uint32_t, 256> moves{};
+    int count = 0;
+
+    void push(std::uint32_t move) {
+        if(count < 256) {
+            moves[count] = move;
+            count++;
+        }
+    }
+
+    std::uint32_t pop() {
+        if(count > 0) {
+            count--;
+            return moves[count];
+        }
+
+        return 0;
+    }
+};

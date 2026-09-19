@@ -15,7 +15,7 @@ main.o: main.cpp game.hpp attacks.hpp utils.hpp
 game.o: game.cpp game.hpp utils.cpp
 	$(CXX) $(CXXFLAGS) -c game.cpp
 
-attacks.o: attacks.cpp attacks.hpp utils.cpp
+attacks.o: attacks.cpp attacks.hpp utils.cpp game.cpp
 	$(CXX) $(CXXFLAGS) -c attacks.cpp
 
 utils.o: utils.cpp utils.hpp
@@ -23,3 +23,6 @@ utils.o: utils.cpp utils.hpp
 
 clean:
 	/bin/rm -f *.o engine
+
+run: engine
+	./engine
