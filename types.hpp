@@ -226,11 +226,11 @@ const u64 CORNER_SQUARES = 9295429630892703873ULL;
 const u64 EDGE_SQUARES = (file_masks[FILE_A] | file_masks[FILE_H] | rank_masks[RANK_1] | rank_masks[RANK_8]) & ~(CORNER_SQUARES);
 const u64 BOARD_EDGE = CORNER_SQUARES | EDGE_SQUARES;
 
-enum CastleRights {
-    WHITE_KINGSIDE,
-    WHITE_QUEENSIDE,
-    BLACK_KINGSIDE,
-    BLACK_QUEENSIDE
+enum CastleRights : std::uint8_t {
+    WHITE_KINGSIDE = 0b0001,
+    WHITE_QUEENSIDE = 0b0010,
+    BLACK_KINGSIDE = 0b0100,
+    BLACK_QUEENSIDE = 0b1000
 };
 
 enum MoveFlag : std::uint8_t {

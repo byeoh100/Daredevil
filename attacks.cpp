@@ -268,12 +268,12 @@ namespace move_gen {
         }
     }
 
-    u64 get_pawn_attack(Square idx, Color color) {
+    u64 get_pawn_attack(int sq, Color color) {
         if(color == WHITE) {
-            return white_pawn_attacks[idx];
+            return white_pawn_attacks[sq];
         }
         else {
-            return black_pawn_attacks[idx];
+            return black_pawn_attacks[sq];
         }
     }
 
@@ -307,8 +307,8 @@ namespace move_gen {
         }
     }
 
-    u64 get_knight_attack(Square idx) {
-        return knight_attacks[idx];
+    u64 get_knight_attack(int sq) {
+        return knight_attacks[sq];
     }
 
     u64 mask_king_attacks(const u64 king_board) {
@@ -331,11 +331,11 @@ namespace move_gen {
         }
     }
 
-    u64 get_king_attack(Square idx) {
-        return king_attacks[idx];
+    u64 get_king_attack(int sq) {
+        return king_attacks[sq];
     }
 
-    u64 get_rook_blocker_mask(Square sq) {
+    u64 get_rook_blocker_mask(int sq) {
         // mask the raw row first - the edges
         // those are your blockers
 
@@ -363,7 +363,7 @@ namespace move_gen {
         return blocker_mask;
     }
 
-    u64 raycast_rook_attacks(Square sq, u64 blocker_board) {
+    u64 raycast_rook_attacks(int sq, u64 blocker_board) {
         int rank = sq / 8;
         int file = sq % 8;
         u64 cross_check = rank_masks[rank] | file_masks[file];
@@ -444,13 +444,13 @@ namespace move_gen {
         }
     }
 
-    u64 index_rook_attacks(Square sq, u64 blocker_board) {
+    u64 index_rook_attacks(int sq, u64 blocker_board) {
         blocker_board &= get_rook_blocker_mask(sq);
-        int idx = static_cast<int>(rook_offsets[sq] + ((rook_magics[sq] * blocker_board) >> (64 - std::popcount(get_rook_blocker_mask(static_cast<Square>(sq)))))); 
+        int idx = (rook_offsets[sq] + ((rook_magics[sq] * blocker_board) >> (64 - std::popcount(get_rook_blocker_mask(static_cast<Square>(sq)))))); 
         return rook_attacks[idx];
     }
 
-    u64 get_bishop_blocker_mask(Square sq) {
+    u64 get_bishop_blocker_mask(int sq) {
         int rank = sq / 8;
         int file = sq % 8;
 
@@ -463,7 +463,7 @@ namespace move_gen {
         return raw_attacks & ~(CORNER_SQUARES) & ~(EDGE_SQUARES);
     }
 
-    u64 raycast_bishop_attacks(Square sq, u64 blocker_board) {
+    u64 raycast_bishop_attacks(int sq, u64 blocker_board) {
         int rank = sq / 8;
         int file = sq % 8;
         int diag = 7 + rank - file;
@@ -533,13 +533,13 @@ namespace move_gen {
         }
     }
 
-    u64 index_bishop_attacks(Square sq, u64 blocker_board) {
+    u64 index_bishop_attacks(int sq, u64 blocker_board) {
         blocker_board &= get_bishop_blocker_mask(sq);
-        int idx = static_cast<int>(bishop_offsets[sq] + ((bishop_magics[sq] * blocker_board) >> (64 - std::popcount(get_bishop_blocker_mask(static_cast<Square>(sq)))))); 
+        int idx = (bishop_offsets[sq] + ((bishop_magics[sq] * blocker_board) >> (64 - std::popcount(get_bishop_blocker_mask(static_cast<Square>(sq)))))); 
         return bishop_attacks[idx];
     }
 
-    u64 index_queen_attacks(Square sq, u64 blocker_board) {
+    u64 index_queen_attacks(int sq, u64 blocker_board) {
         return index_rook_attacks(sq, blocker_board) | index_bishop_attacks(sq, blocker_board);    
     }
 
@@ -656,16 +656,97 @@ namespace move_gen {
         // king already has explicit no move into check
         // handle illegal moves with take backs for now
         // if any king moves update the castling flags
-        
+        while(king) {
+            Piece king_color = (color == WHITE) ? WHITE_KING : BLACK_KING;
+            Square home_square = (color == WHITE) ? E1 : E8;
+
+            uint8_t castle_rights = game_board.get_castle_rights();
+            int kingside_castle = (color == WHITE) ? (castle_rights & WHITE_KINGSIDE) : (castle_rights & BLACK_KINGSIDE);
+            int queenside_castle = (color == WHITE) ? (castle_rights & WHITE_QUEENSIDE) : (castle_rights & BLACK_QUEENSIDE);
+            u64 kingside_mask = (1ULL << (source + 1)) | (1ULL << (source + 2));
+            u64 queenside_mask = (1ULL << (source - 1)) | (1ULL << (source - 2));
+
+            source = pop_lsb(king);
+            if(source == home_square) {
+                if(kingside_castle
+                    && !is_sq_attacked(source + 1, game_board, color)
+                    && !is_sq_attacked(source + 2, game_board, color)
+                    && !(kingside_mask & blocker_board)
+                ) move_list.push(encode_move(source, source + 2, king_color, CASTLE_KINGSIDE));
+                if(queenside_castle
+                    && !is_sq_attacked(source - 1, game_board, color)
+                    && !is_sq_attacked(source - 2, game_board, color)
+                    && !(queenside_mask & blocker_board)
+                ) move_list.push(encode_move(source, source - 2, king_color, CASTLE_QUEENSIDE));
+            }
+
+            u64 curr_king_attacks = king_attacks[source];
+            while(curr_king_attacks != 0) {
+                target = pop_lsb(curr_king_attacks);
+                if(!is_sq_attacked(target, game_board, color)) {
+                    if((1ULL << target) & enemy_pieces) {
+                        move_list.push(encode_move(source, target, king_color, CAPTURE));
+                    }
+                    else if(!((1ULL << target) & friendly_pieces)) {
+                        move_list.push(encode_move(source, target, king_color, QUIET_MOVE));
+                    }
+                }
+            }
+        }
 
         // slider moves straightforward
+        while(rook) {
+            Piece rook_color = (color == WHITE) ? WHITE_ROOK : BLACK_ROOK;
+
+            source = pop_lsb(rook);
+            u64 curr_rook_attacks = index_rook_attacks(source, blocker_board);
+            while(curr_rook_attacks) {
+                target = pop_lsb(curr_rook_attacks);
+                if((1ULL << target) & enemy_pieces) {
+                    move_list.push(encode_move(source, target, rook_color, CAPTURE));
+                }
+                else if(!((1ULL << target) & friendly_pieces)) {
+                    move_list.push(encode_move(source, target, rook_color, QUIET_MOVE));
+                }
+            }
+        }
+        while(bishop) {
+            Piece bishop_color = (color == WHITE) ? WHITE_BISHOP : BLACK_BISHOP;
+
+            source = pop_lsb(bishop);
+            u64 curr_bishop_attacks = index_bishop_attacks(source, blocker_board);
+            while(curr_bishop_attacks) {
+                target = pop_lsb(curr_bishop_attacks);
+                if((1ULL << target) & enemy_pieces) {
+                    move_list.push(encode_move(source, target, bishop_color, CAPTURE));
+                }
+                else if(!((1ULL << target) & friendly_pieces)) {
+                    move_list.push(encode_move(source, target, bishop_color, QUIET_MOVE));
+                }
+            }
+        }
+        while(queen) {
+            Piece queen_color = (color == WHITE) ? WHITE_QUEEN : BLACK_QUEEN;
+
+            source = pop_lsb(queen);
+            u64 curr_queen_attacks = index_queen_attacks(source, blocker_board);
+            while(curr_queen_attacks) {
+                target = pop_lsb(curr_queen_attacks);
+                if((1ULL << target) & enemy_pieces) {
+                    move_list.push(encode_move(source, target, queen_color, CAPTURE));
+                }
+                else if(!((1ULL << target) & friendly_pieces)) {
+                    move_list.push(encode_move(source, target, queen_color, QUIET_MOVE));
+                }
+            }
+        }
     }
 
     // get attacks in bulk
     // u64 get_side_attacks(std::span<const u64> all_pieces, u64 blocker_board, Color color);
 
     // }
-    bool is_sq_attacked(Square sq, const GameBoard& game_board, Color color) {
+    bool is_sq_attacked(int sq, const GameBoard& game_board, Color color) {
         u64 blocker_board = game_board.get_occupancy();
 
         // Get the pieces attacking COLOR
@@ -691,28 +772,13 @@ namespace move_gen {
         u64 legal = 0ULL;
         while(attacks != 0) {
             int check_bit = std::countr_zero(attacks);
-            if(!is_sq_attacked(static_cast<Square>(check_bit), game_board, color)) legal |= 1ULL << check_bit;
+            if(!is_sq_attacked(check_bit, game_board, color)) legal |= 1ULL << check_bit;
             attacks &= (attacks - 1);
         }
 
         // missing logic for behind the king
 
         return legal;
-    }
-
-    u64 get_castling(Square idx, std::span<const u64> all_pieces, u64 blocker_board, Color color) {
-        // assume the flag is up
-        
-        // error if king out of pos
-
-        // check kingside rook
-        // check squares between
-        // check king in check
-        // OR castling
-        // perhaps change to bool function because we can't really return a bitboard
-        
-        // check same style queenside
-        return 0;
     }
 
     // encoding key bits:

@@ -31,6 +31,7 @@ class GameBoard {
         void set_piece(Piece piece, Square board_idx);
         u64 get_piece(Piece piece) const;
         std::span<const u64> get_all_pieces_view() const;
+        uint8_t get_castle_rights() const;
         Square get_en_passant_target() const;
         void update_boards(Piece piece);
         u64 get_occupancy() const;

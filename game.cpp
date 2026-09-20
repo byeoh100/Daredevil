@@ -250,3 +250,7 @@ Color GameBoard::get_to_move() const {
 Square GameBoard::get_en_passant_target() const {
     return en_passant_target;
 }
+
+uint8_t GameBoard::get_castle_rights() const {
+    return castle_rights;
+}

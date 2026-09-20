@@ -30,7 +30,7 @@ int main() {
     MoveList m;
     GameBoard b;
     b.init();
-    b.load_from_fen("8/8/8/8/p1P5/8/1N6/8 w - - 0 1");
+    b.load_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     move_gen::init_all_pieces();
 
     move_gen::generate_moves(b, m);
