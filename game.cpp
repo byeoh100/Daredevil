@@ -2,17 +2,17 @@
 
 void GameBoard::set_piece(Piece piece, Square idx) {
     u64 bit_piece = 1ULL << idx;
-    for(u64 &board_piece : all_pieces) {
-        // if a piece already exists at that spot remove it
-        if(board_piece == (board_piece | bit_piece)) board_piece &= ~(bit_piece);
-    }
-
     all_pieces[piece] |= bit_piece;
-    update_boards(piece);
+    update_boards();
 }
 
 u64 GameBoard::get_piece(Piece piece) const {
     return all_pieces[piece];
+}
+
+void GameBoard::clear_piece(Piece piece, Square sq) {
+    all_pieces[piece] &= ~(1ULL << sq);
+    update_boards();
 }
 
 std::span<const u64> GameBoard::get_all_pieces_view() const {
@@ -117,7 +117,7 @@ void GameBoard::load_from_fen(std::string fen) {
         else {
             Piece piece = char_to_piece(c);
             if(piece != NO_PIECE) {
-                set_piece(piece, static_cast<Square>(rank * 8 + file));
+                set_piece(piece, rank * 8 + file);
                 file++;
             }
         }
@@ -151,7 +151,7 @@ void GameBoard::load_from_fen(std::string fen) {
         char rank_char = en_passant_string[1];
 
         // need validation here
-        en_passant_target = static_cast<Square>(((rank_char - '1') * 8) + (file_char - 'a'));
+        en_passant_target = ((rank_char - '1') * 8) + (file_char - 'a');
     }
 
     half_move = std::stoi(fen_tokens[4]);
@@ -206,10 +206,14 @@ void GameBoard::print_fen_status() {
     std::cout << "\n";
 }
 
-void GameBoard::update_boards(Piece piece) {
-    (piece < 6) ? white_board |= all_pieces[piece] : black_board |= all_pieces[piece];
+void GameBoard::update_boards() {
+    white_board = 0ULL;
+    black_board = 0ULL;
+    for (int piece = 0; piece < 6; piece++)  white_board |= all_pieces[piece];
+    for (int piece = 6; piece < 12; piece++) black_board |= all_pieces[piece];
     occupancy_board = white_board | black_board;
 }
+
 u64 GameBoard::get_occupancy() const {
     return occupancy_board;
 }
@@ -253,4 +257,120 @@ Square GameBoard::get_en_passant_target() const {
 
 uint8_t GameBoard::get_castle_rights() const {
     return castle_rights;
+}
+
+void GameBoard::set_castle_rights(uint8_t cr) {
+    castle_rights = cr;
+}
+
+bool GameBoard::make_move(std::uint32_t move) {
+    GameBoard save = *this;
+
+    Square source = get_move_source(move);
+    Square target = get_move_target(move);
+    Piece piece = get_move_piece(move);
+    MoveFlag flag = get_move_flag(move);
+
+    // for promotions
+    Piece new_piece = piece;
+
+    en_passant_target = NO_SQUARE;
+    half_move++;
+    if(to_move == BLACK) full_move++;
+
+    if(flag == CASTLE_KINGSIDE) {
+        // manually moving rooks and clear castle right
+        if(to_move == WHITE) {
+            clear_piece(WHITE_ROOK, H1);
+            set_piece(WHITE_ROOK, F1);
+        }
+        else {
+            clear_piece(BLACK_ROOK, H8);
+            set_piece(BLACK_ROOK, F8);
+        }
+    }
+    else if(flag == CASTLE_QUEENSIDE) {
+        if(to_move == WHITE) {
+            clear_piece(WHITE_ROOK, A1);
+            set_piece(WHITE_ROOK, D1);
+        }
+        else {
+            clear_piece(BLACK_ROOK, A8);
+            set_piece(BLACK_ROOK, D8);
+        }
+    }
+
+    if(flag & PROMOTION_BIT) {
+        std::uint8_t piece_bits = flag & 0b0011;
+        switch(piece_bits) {
+            case 0:
+                new_piece = (to_move == WHITE) ? WHITE_KNIGHT : BLACK_KNIGHT;
+                break;
+            case 1:
+                new_piece = (to_move == WHITE) ? WHITE_BISHOP : BLACK_BISHOP;
+                break;
+            case 2:
+                new_piece = (to_move == WHITE) ? WHITE_ROOK : BLACK_ROOK;
+                break;
+            case 3:
+                new_piece = (to_move == WHITE) ? WHITE_QUEEN : BLACK_QUEEN;
+                break;
+        }
+    }
+
+    if(flag & CAPTURE_BIT) {
+        // handle en passant
+        if(flag == EN_PASSANT) {
+            (to_move == WHITE) ? clear_piece(BLACK_PAWN, target + SOUTH) : clear_piece(WHITE_PAWN, target + NORTH);
+        }
+        else {
+            // remove captured piece
+            for(u64 &board_piece : all_pieces) {
+                board_piece &= ~(1ULL << target);
+            }
+        }
+        half_move = 0;
+    }
+
+    if(piece == WHITE_PAWN || piece == BLACK_PAWN) {
+        if(flag == DOUBLE_MOVE)
+            en_passant_target = (piece == WHITE_PAWN) ? source + NORTH : source + SOUTH;
+
+        half_move = 0;
+    }
+
+    // move the castle rights clearing from the castling branch
+    if(piece == WHITE_KING && (castle_rights & (WHITE_KINGSIDE | WHITE_QUEENSIDE))) castle_rights &= ~(WHITE_KINGSIDE) & ~(WHITE_QUEENSIDE);
+    if(piece == BLACK_KING && (castle_rights & (BLACK_KINGSIDE | BLACK_QUEENSIDE))) castle_rights &= ~(BLACK_KINGSIDE) & ~(BLACK_QUEENSIDE);
+    
+    // did a home square rook move
+    if(piece == WHITE_ROOK) {
+        if(source == H1) castle_rights &= ~WHITE_KINGSIDE;
+        if(source == A1) castle_rights &= ~WHITE_QUEENSIDE;
+    }
+    else if(piece == BLACK_ROOK) {
+        if(source == H8) castle_rights &= ~BLACK_KINGSIDE;
+        if(source == A8) castle_rights &= ~BLACK_QUEENSIDE;
+    }
+
+    // were any home square rooks recaptured
+    if(target == H1) castle_rights &= ~WHITE_KINGSIDE;
+    if(target == A1) castle_rights &= ~WHITE_QUEENSIDE;
+    if(target == H8) castle_rights &= ~BLACK_KINGSIDE;
+    if(target == A8) castle_rights &= ~BLACK_QUEENSIDE;
+
+    clear_piece(piece, source);
+    set_piece(new_piece, target);
+
+    Color color = to_move;
+    to_move = (to_move == WHITE) ? BLACK : WHITE;
+
+    int king_sq = (color == WHITE) ? std::countr_zero(all_pieces[WHITE_KING]) : std::countr_zero(all_pieces[BLACK_KING]);
+
+    if(move_gen::is_sq_attacked(king_sq, *this, color)) {
+        *this = save;
+        return false;
+    }
+
+    return true;
 }

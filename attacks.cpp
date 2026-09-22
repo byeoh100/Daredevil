@@ -256,15 +256,9 @@ namespace move_gen {
 
     void init_pawn_attacks_array() {
         for(int i = 0; i < 64; i++) {
-            if(i < 8 || i >= 56) {
-                white_pawn_attacks[i] = 0;
-                black_pawn_attacks[i] = 0;
-            }
-            else {
-                u64 single_pawn_board = (1ULL << i);
-                white_pawn_attacks[i] = mask_pawn_attacks(single_pawn_board, WHITE);
-                black_pawn_attacks[i] = mask_pawn_attacks(single_pawn_board, BLACK);
-            }
+            u64 single_pawn_board = (1ULL << i);
+            white_pawn_attacks[i] = mask_pawn_attacks(single_pawn_board, WHITE);
+            black_pawn_attacks[i] = mask_pawn_attacks(single_pawn_board, BLACK);
         }
     }
 
@@ -411,7 +405,7 @@ namespace move_gen {
         };
 
         for(int i = 0; i < 64; i++) {
-            u64 blocker_mask = get_rook_blocker_mask(static_cast<Square>(i));
+            u64 blocker_mask = get_rook_blocker_mask(i);
 
             int relevant_bits = std::popcount(blocker_mask);
             // u64 candidate = gen_magic_candidate();
@@ -419,7 +413,7 @@ namespace move_gen {
 
             while(bit_settings < (1U << relevant_bits)) {
                 u64 written_settings = write_bit_settings(blocker_mask, bit_settings);
-                u64 cast_rook_attacks = raycast_rook_attacks(static_cast<Square>(i), written_settings);
+                u64 cast_rook_attacks = raycast_rook_attacks(i, written_settings);
 
                 // **USED FOR MAGIC GENERATION**
                 // int idx = static_cast<int>(rook_offsets[i] + ((candidate * written_settings) >> (64 - relevant_bits)));
@@ -446,7 +440,7 @@ namespace move_gen {
 
     u64 index_rook_attacks(int sq, u64 blocker_board) {
         blocker_board &= get_rook_blocker_mask(sq);
-        int idx = (rook_offsets[sq] + ((rook_magics[sq] * blocker_board) >> (64 - std::popcount(get_rook_blocker_mask(static_cast<Square>(sq)))))); 
+        int idx = (rook_offsets[sq] + ((rook_magics[sq] * blocker_board) >> (64 - std::popcount(get_rook_blocker_mask(sq))))); 
         return rook_attacks[idx];
     }
 
@@ -500,7 +494,7 @@ namespace move_gen {
         };
 
         for(int i = 0; i < 64; i++) {
-            u64 blocker_mask = get_bishop_blocker_mask(static_cast<Square>(i));
+            u64 blocker_mask = get_bishop_blocker_mask(i);
 
             int relevant_bits = std::popcount(blocker_mask);
             // u64 candidate = gen_magic_candidate();
@@ -508,7 +502,7 @@ namespace move_gen {
 
             while(bit_settings < (1U << relevant_bits)) {
                 u64 written_settings = write_bit_settings(blocker_mask, bit_settings);
-                u64 cast_bishop_attacks = raycast_bishop_attacks(static_cast<Square>(i), written_settings);
+                u64 cast_bishop_attacks = raycast_bishop_attacks(i, written_settings);
 
                 // **USED FOR MAGIC GENERATION**
                 // int idx = static_cast<int>(bishop_offsets[i] + ((candidate * written_settings) >> (64 - relevant_bits)));
@@ -535,7 +529,7 @@ namespace move_gen {
 
     u64 index_bishop_attacks(int sq, u64 blocker_board) {
         blocker_board &= get_bishop_blocker_mask(sq);
-        int idx = (bishop_offsets[sq] + ((bishop_magics[sq] * blocker_board) >> (64 - std::popcount(get_bishop_blocker_mask(static_cast<Square>(sq)))))); 
+        int idx = (bishop_offsets[sq] + ((bishop_magics[sq] * blocker_board) >> (64 - std::popcount(get_bishop_blocker_mask(sq))))); 
         return bishop_attacks[idx];
     }
 
@@ -548,6 +542,9 @@ namespace move_gen {
     // --------------------------------
 
     void generate_moves(const GameBoard & game_board, MoveList & move_list) {
+        std::fill(std::begin(move_list.moves), std::end(move_list.moves), 0);
+        move_list.count = 0;
+
         u64 blocker_board = game_board.get_occupancy();
         Color color = game_board.get_to_move();
 
@@ -617,7 +614,7 @@ namespace move_gen {
             }
 
             // Attacks
-            u64 curr_pawn_attacks = get_pawn_attack(static_cast<Square>(source), color);
+            u64 curr_pawn_attacks = get_pawn_attack(source, color);
             while(curr_pawn_attacks) {
                 target = pop_lsb(curr_pawn_attacks);
                 if((1ULL << target) & enemy_pieces) {
@@ -659,21 +656,24 @@ namespace move_gen {
         while(king) {
             Piece king_color = (color == WHITE) ? WHITE_KING : BLACK_KING;
             Square home_square = (color == WHITE) ? E1 : E8;
+            source = pop_lsb(king);
 
             uint8_t castle_rights = game_board.get_castle_rights();
             int kingside_castle = (color == WHITE) ? (castle_rights & WHITE_KINGSIDE) : (castle_rights & BLACK_KINGSIDE);
             int queenside_castle = (color == WHITE) ? (castle_rights & WHITE_QUEENSIDE) : (castle_rights & BLACK_QUEENSIDE);
             u64 kingside_mask = (1ULL << (source + 1)) | (1ULL << (source + 2));
-            u64 queenside_mask = (1ULL << (source - 1)) | (1ULL << (source - 2));
+            u64 queenside_mask = (1ULL << (source - 1)) | (1ULL << (source - 2)) | (1ULL << (source - 3));
 
-            source = pop_lsb(king);
             if(source == home_square) {
                 if(kingside_castle
+                    && !is_sq_attacked(source, game_board, color)
                     && !is_sq_attacked(source + 1, game_board, color)
                     && !is_sq_attacked(source + 2, game_board, color)
                     && !(kingside_mask & blocker_board)
+                    // perhaps add rook validation
                 ) move_list.push(encode_move(source, source + 2, king_color, CASTLE_KINGSIDE));
                 if(queenside_castle
+                    && !is_sq_attacked(source, game_board, color)
                     && !is_sq_attacked(source - 1, game_board, color)
                     && !is_sq_attacked(source - 2, game_board, color)
                     && !(queenside_mask & blocker_board)
@@ -780,53 +780,4 @@ namespace move_gen {
 
         return legal;
     }
-
-    // encoding key bits:
-    // <---dead 8 bits---> | 16-23 | 12-15 | 6-11 | 0-5
-    //                       flags   piece   tgt    src
-    std::uint32_t encode_move(int source, int target, Piece piece, MoveFlag flag) {
-        // insert error handling for empty move values
-        std::uint32_t encoded_move = 0;
-        encoded_move |= (static_cast<std::uint32_t>(source));
-        encoded_move |= (static_cast<std::uint32_t>(target)) << 6;
-        encoded_move |= (static_cast<std::uint32_t>(piece)) << 12;
-        encoded_move |= (static_cast<std::uint32_t>(flag)) << 16;
-
-        return encoded_move;
-    }
-
-
-    Move decode_move(std::uint32_t encoded_move) {
-        Move decoded_move;
-        
-        decoded_move.source = static_cast<Square>(encoded_move & ((1 << 6) - 1)); // 6b mask
-        encoded_move >>= 6;
-        decoded_move.target = static_cast<Square>(encoded_move & ((1 << 6) - 1));
-        encoded_move >>= 6;
-        decoded_move.piece = static_cast<Piece>(encoded_move & ((1 << 4) - 1)); // 4b mask
-        encoded_move >>= 4;
-        decoded_move.flag = static_cast<MoveFlag>(encoded_move & ((1 << 8) - 1)); // 8b mask
-
-        return decoded_move;
-    }
-
-    void print_move(const Move& move) {
-        std::array<std::string, 12> piece_names = {"King(W)", "Queen(W)", "Rook(W)", "Bishop(W)", "Knight(W)", "Pawn(W)", "King(B)", "Queen(B)", "Rook(B)", "Bishop(B)", "Knight(B)", "Pawn(B)"};
-        std::array<std::string, 16> flag_names = {
-            "Quiet", "Double", "Castle Kingside", "Castle Queenside", "Capture", "En Passant", "", "",
-            "Promotion Knight", "Promotion Bishop", "Promotion Rook", "Promotion Queen",
-            "Capture Promotion Knight", "Capture Promotion Bishop", "Capture Promotion Rook", "Capture Promotion Queen",
-        };
-
-        char source_file = (static_cast<int>(move.source) % 8) + 'a';
-        char source_rank = (static_cast<int>(move.source) / 8) + '1';
-        char target_file = (static_cast<int>(move.target) % 8) + 'a';
-        char target_rank = (static_cast<int>(move.target) / 8) + '1';
-        std::string piece = piece_names[move.piece];
-        std::string flag = flag_names[move.flag];
-
-        std::cout << flag << " | " << piece << " | " << source_file << source_rank << " -> " << target_file << target_rank << "\n";
-
-    }
-
 } // namespace move_gen

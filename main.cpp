@@ -2,6 +2,7 @@
 #include "game.hpp"
 #include "attacks.hpp"
 #include "utils.hpp"
+#include "debug.hpp"
 
 #include <iostream>
 #include <cstdint>
@@ -27,20 +28,21 @@
 // dev_tool::
 
 int main() {
-    MoveList m;
-    GameBoard b;
-    b.init();
-    b.load_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    GameBoard board;
+    board.init();
+    board.load_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     move_gen::init_all_pieces();
 
-    move_gen::generate_moves(b, m);
-
-    for(auto move : m.moves) {
-        if(move) {
-            auto decoded_move = move_gen::decode_move(move);
-            move_gen::print_move(decoded_move);
-        }
-    }
+    perft_test(board, 1);
+    perft_test(board, 2);
+    perft_test(board, 3);
+    perft_test(board, 4);
+    perft_test(board, 5);
+    perft_test(board, 6);
+    perft_test(board, 7);
+    perft_test(board, 8);
+    perft_test(board, 9);
+    perft_test(board, 10);
 
     return 0;
 }

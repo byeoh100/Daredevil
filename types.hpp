@@ -66,7 +66,7 @@ enum Direction : int {
     NORTHWEST = 7
 };
 
-enum Square : int {
+enum SquareIndex : int {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
     A3, B3, C3, D3, E3, F3, G3, H3,
@@ -77,6 +77,9 @@ enum Square : int {
     A8, B8, C8, D8, E8, F8, G8, H8,
     NO_SQUARE, // = 64
 };
+
+// need cleanup on this
+using Square = int;
 
 enum File {
     FILE_A,
@@ -226,12 +229,10 @@ const u64 CORNER_SQUARES = 9295429630892703873ULL;
 const u64 EDGE_SQUARES = (file_masks[FILE_A] | file_masks[FILE_H] | rank_masks[RANK_1] | rank_masks[RANK_8]) & ~(CORNER_SQUARES);
 const u64 BOARD_EDGE = CORNER_SQUARES | EDGE_SQUARES;
 
-enum CastleRights : std::uint8_t {
-    WHITE_KINGSIDE = 0b0001,
-    WHITE_QUEENSIDE = 0b0010,
-    BLACK_KINGSIDE = 0b0100,
-    BLACK_QUEENSIDE = 0b1000
-};
+constexpr std::uint8_t WHITE_KINGSIDE = 0b0001;
+constexpr std::uint8_t WHITE_QUEENSIDE = 0b0010;
+constexpr std::uint8_t BLACK_KINGSIDE = 0b0100;
+constexpr std::uint8_t BLACK_QUEENSIDE = 0b1000;
 
 enum MoveFlag : std::uint8_t {
     // regular moves
@@ -255,6 +256,10 @@ enum MoveFlag : std::uint8_t {
     CAPTURE_PROMO_R = 0b1110,
     CAPTURE_PROMO_Q = 0b1111
 };
+
+constexpr std::uint8_t CASTLE_BIT = 0b0010;
+constexpr std::uint8_t CAPTURE_BIT = 0b0100;
+constexpr std::uint8_t PROMOTION_BIT = 0b1000;
 
 struct Move {
     Square source = NO_SQUARE;

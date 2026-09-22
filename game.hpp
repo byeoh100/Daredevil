@@ -2,6 +2,8 @@
 
 #include "types.hpp"
 #include "utils.hpp"
+#include "moves.hpp"
+#include "attacks.hpp"
 
 #include <iostream>
 #include <cstdint>
@@ -28,17 +30,26 @@ class GameBoard {
 
     public:
         Color get_to_move() const;
+
         void set_piece(Piece piece, Square board_idx);
         u64 get_piece(Piece piece) const;
+        void clear_piece(Piece piece, Square sq);
+        
         std::span<const u64> get_all_pieces_view() const;
+
         uint8_t get_castle_rights() const;
+        void set_castle_rights(uint8_t cr);
+
         Square get_en_passant_target() const;
-        void update_boards(Piece piece);
+
+        void update_boards();
         u64 get_occupancy() const;
         u64 get_white_board() const;
         u64 get_black_board() const;
         std::tuple<u64, u64, u64, u64, u64, u64> get_white_pieces() const;
         std::tuple<u64, u64, u64, u64, u64, u64> get_black_pieces() const;
+
+        bool make_move(std::uint32_t move);
 
         void init();
         void reset();

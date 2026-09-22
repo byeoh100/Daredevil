@@ -3,6 +3,7 @@
 #include "types.hpp"
 #include "utils.hpp"
 #include "game.hpp"
+#include "moves.hpp"
 
 #include <iostream>
 #include <cstdint>
@@ -14,6 +15,8 @@
 #include <sstream>
 #include <algorithm>
 #include <random>
+
+class GameBoard;
 
 namespace move_gen {
     // --------------------------------
@@ -51,27 +54,10 @@ namespace move_gen {
     // @@@ IN-GAME MOVE GENERATION @@@
     // --------------------------------
     void generate_moves(const GameBoard& game_board, MoveList& move_list);
+
     u64 get_side_attacks(const GameBoard& game_board, Color color);
     bool is_sq_attacked(int sq, const GameBoard& game_board, Color color);
 
     u64 get_legal_king_attacks(Square sq, const GameBoard& game_board, Color color);
     bool is_castle_squares_clear(std::uint8_t castle_bit, const GameBoard& game_board);
-
-    std::uint32_t encode_move(int source, int target, Piece piece, MoveFlag flag);
-    Move decode_move(std::uint32_t encoded_move);
-    void print_move(const Move& move);
-
-    constexpr Square get_move_source(std::uint32_t move) {
-        return static_cast<Square>(move & ((1 << 6) - 1));
-    }
-    constexpr Square get_move_target(std::uint32_t move) {
-        return static_cast<Square>((move >> 6) & ((1 << 6) - 1));
-    }
-    constexpr Piece get_move_piece(std::uint32_t move) {
-        return static_cast<Piece>((move >> 12) & ((1 << 4) - 1));
-    }
-    constexpr MoveFlag get_move_flag(std::uint32_t move) {
-        return static_cast<MoveFlag>((move >> 16) & ((1 << 8) - 1));
-    }
-
 } // namespace move_gen
