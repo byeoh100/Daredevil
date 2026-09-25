@@ -1,10 +1,10 @@
 #include "utils.hpp"
 
 void print_bitboard(u64 bitboard) {
-    for(int rank = 7; rank >= 0; rank--) {
-        for(int file = 0; file < 8; file++) {
+    for (int rank = 7; rank >= 0; rank--) {
+        for (int file = 0; file < 8; file++) {
             int square = rank * 8 + file;
-            
+
             if ((bitboard >> square) & 1ULL) {
                 std::cout << "1 ";
             } else {
@@ -17,7 +17,7 @@ void print_bitboard(u64 bitboard) {
 }
 
 Piece char_to_piece(const char& c) {
-    switch(c) {
+    switch (c) {
         case 'k':
             return BLACK_KING;
             break;

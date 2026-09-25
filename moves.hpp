@@ -1,16 +1,16 @@
 #pragma once
 
-#include "types.hpp"
-
-#include <iostream>
-#include <cstdint>
-#include <vector>
-#include <string>
-#include <bit>
-#include <array>
-#include <stdexcept>
-#include <sstream>
 #include <algorithm>
+#include <array>
+#include <bit>
+#include <cstdint>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+#include "types.hpp"
 
 std::uint32_t encode_move(int source, int target, Piece piece, MoveFlag flag);
 Move decode_move(std::uint32_t encoded_move);

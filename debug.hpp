@@ -1,22 +1,22 @@
 #pragma once
 
-#include "types.hpp"
-#include "utils.hpp"
+#include <algorithm>
+#include <array>
+#include <bit>
+#include <chrono>
+#include <cstdint>
+#include <iostream>
+#include <random>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+#include "attacks.hpp"
 #include "game.hpp"
 #include "moves.hpp"
-#include "attacks.hpp"
-
-#include <iostream>
-#include <cstdint>
-#include <vector>
-#include <string>
-#include <bit>
-#include <array>
-#include <stdexcept>
-#include <sstream>
-#include <algorithm>
-#include <random>
-#include <chrono>
+#include "types.hpp"
+#include "utils.hpp"
 
 u64 perft_driver(GameBoard game_board, int depth);
 void perft_test(GameBoard game_board, int depth);

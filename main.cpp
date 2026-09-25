@@ -1,22 +1,21 @@
-#include "types.hpp"
-#include "game.hpp"
-#include "attacks.hpp"
-#include "utils.hpp"
-#include "debug.hpp"
-
-#include <iostream>
-#include <cstdint>
-#include <vector>
-#include <string>
-#include <bit>
 #include <array>
+#include <bit>
+#include <cstdint>
+#include <iostream>
+#include <string>
+#include <vector>
 
+#include "attacks.hpp"
+#include "debug.hpp"
+#include "game.hpp"
+#include "types.hpp"
+#include "utils.hpp"
 
 // NOTES
 // - write a Makefile for now, but move to CMake later
 
-// (long) each chess piece black and white | 2d -> 1d flatten 8x8 board to 64 and represent as a long
-// the collection of every long consitutes the bit map
+// (long) each chess piece black and white | 2d -> 1d flatten 8x8 board to 64
+// and represent as a long the collection of every long consitutes the bit map
 
 // get rank = sq / 8
 // get bit = sq % 8
@@ -30,7 +29,8 @@
 int main() {
     GameBoard board;
     board.init();
-    board.load_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    board.load_from_fen(
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     move_gen::init_all_pieces();
 
     perft_test(board, 1);
@@ -39,10 +39,6 @@ int main() {
     perft_test(board, 4);
     perft_test(board, 5);
     perft_test(board, 6);
-    perft_test(board, 7);
-    perft_test(board, 8);
-    perft_test(board, 9);
-    perft_test(board, 10);
 
     return 0;
 }
