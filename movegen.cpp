@@ -10,7 +10,7 @@ std::array<bitboard, 64> king_attacks;
 // 4*2^12 + 6*2^11 + 36*2^10 sized = 102,400
 std::array<bitboard, 102400> rook_attacks{};
 std::array<bitboard, 64> rook_blockers{};
-std::array<bitboard, 64> rook_blocker_bits{};
+std::array<int, 64> rook_blocker_bits{};
 constexpr std::array<u64, 64> rook_magics{
     // hardcoded magics generated with init
     612489663141167106ULL,  36063982465110144ULL,    72066666367836162ULL,
@@ -42,7 +42,7 @@ std::array<int, 64> rook_offsets;
 // ring(b2) + edge/corner: 4*2^9 + 12*2^7 + 44*2^5 + 4*2^6 = 5248
 std::array<bitboard, 5248> bishop_attacks{};
 std::array<bitboard, 64> bishop_blockers{};
-std::array<bitboard, 64> bishop_blocker_bits{};
+std::array<int, 64> bishop_blocker_bits{};
 constexpr std::array<u64, 64> bishop_magics{
     722308776141258816ULL,   13836263130780532752ULL, 4516796185315344ULL,
     6830728872466432ULL,     723958175624103232ULL,   72356670059053056ULL,
@@ -166,7 +166,8 @@ void init_bishop_blockers() {
         int antidiag = rank + file;
 
         bitboard raw_attacks =
-            (diagonal_masks[diag] | antidiagonal_masks[antidiag]) & ~(bishop_board);
+            (diagonal_masks[diag] | antidiagonal_masks[antidiag]) &
+            ~(bishop_board);
 
         bishop_blockers[sq] = raw_attacks & ~(CORNER_SQUARES) & ~(EDGE_SQUARES);
         bishop_blocker_bits[sq] = 64 - std::popcount(bishop_blockers[sq]);
@@ -293,9 +294,8 @@ void init_rook_attacks_array() {
 
 bitboard get_rook_attack(square sq, bitboard blocker_board) {
     blocker_board &= rook_blockers[sq];
-    int idx =
-        (rook_offsets[sq] + ((rook_magics[sq] * blocker_board) >>
-                             rook_blocker_bits[sq]));
+    int idx = (rook_offsets[sq] +
+               ((rook_magics[sq] * blocker_board) >> rook_blocker_bits[sq]));
     return rook_attacks[idx];
 }
 
@@ -374,9 +374,8 @@ void init_bishop_attacks_array() {
 
 bitboard get_bishop_attack(square sq, bitboard blocker_board) {
     blocker_board &= bishop_blockers[sq];
-    int idx = (bishop_offsets[sq] +
-               ((bishop_magics[sq] * blocker_board) >>
-                bishop_blocker_bits[sq]));
+    int idx = (bishop_offsets[sq] + ((bishop_magics[sq] * blocker_board) >>
+                                     bishop_blocker_bits[sq]));
     return bishop_attacks[idx];
 }
 

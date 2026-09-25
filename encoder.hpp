@@ -8,8 +8,8 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <vector>
 #include <string_view>
+#include <vector>
 
 #include "types.hpp"
 #include "utils.hpp"
@@ -23,9 +23,9 @@ inline constexpr int TARGET_SHIFT = 6;
 inline constexpr int PIECE_SHIFT = 12;
 inline constexpr int FLAG_SHIFT = 16;
 
-inline constexpr u32 MASK_4B = (1 << 4) - 1;    // Piece
-inline constexpr u32 MASK_6B = (1 << 6) - 1;    // Source/Target
-inline constexpr u32 MASK_8B = (1 << 8) - 1;    // Flag
+inline constexpr u32 MASK_4B = (1 << 4) - 1;  // Piece
+inline constexpr u32 MASK_6B = (1 << 6) - 1;  // Source/Target
+inline constexpr u32 MASK_8B = (1 << 8) - 1;  // Flag
 
 void print_move(u32 encoded_move);
 
@@ -42,7 +42,8 @@ constexpr MoveFlag get_move_flag(u32 move) {
     return static_cast<MoveFlag>((move >> FLAG_SHIFT) & (MASK_8B));
 }
 
-constexpr u32 encode_move(square source, square target, Piece piece, MoveFlag flag) {
+constexpr u32 encode_move(square source, square target, Piece piece,
+                          MoveFlag flag) {
     // insert error handling for empty move values
     u32 encoded_move = 0;
     encoded_move |= (static_cast<u32>(source)) << SOURCE_SHIFT;
@@ -57,15 +58,13 @@ constexpr Move decode_move(u32 encoded_move) {
     Move decoded_move;
 
     decoded_move.source =
-        static_cast<square>(encoded_move & (MASK_6B));
-    encoded_move >>= 6;
-    decoded_move.target = static_cast<square>(encoded_move & MASK_6B);
-    encoded_move >>= 6;
+        static_cast<square>((encoded_move >> SOURCE_SHIFT) & (MASK_6B));
+    decoded_move.target =
+        static_cast<square>((encoded_move >> TARGET_SHIFT) & MASK_6B);
     decoded_move.piece =
-        static_cast<Piece>(encoded_move & MASK_4B);
-    encoded_move >>= 4;
+        static_cast<Piece>((encoded_move >> PIECE_SHIFT) & MASK_4B);
     decoded_move.flag =
-        static_cast<MoveFlag>(encoded_move & MASK_8B);
+        static_cast<MoveFlag>((encoded_move >> FLAG_SHIFT) & MASK_8B);
 
     return decoded_move;
 }

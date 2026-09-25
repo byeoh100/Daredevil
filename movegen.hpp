@@ -69,7 +69,7 @@ constexpr bitboard mask_pawn_attacks(const bitboard pawn_board, Color color) {
     }
 }
 constexpr bitboard mask_pawn_quiets(bitboard pawn_board, Color color,
-                          bitboard blocker_board) {
+                                    bitboard blocker_board) {
     if (color == WHITE) {
         pawn_board = types::shift(pawn_board, NORTH) & ~(blocker_board);
         bitboard double_move = types::shift(pawn_board, NORTH) &

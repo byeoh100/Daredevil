@@ -32,7 +32,9 @@ private:
 
 public:
     constexpr Color get_to_move() const { return to_move; }
-    constexpr bitboard get_piece(Piece piece) const { return all_pieces[piece]; }
+    constexpr bitboard get_piece(Piece piece) const {
+        return all_pieces[piece];
+    }
     constexpr u8 get_castle_rights() const { return castle_rights; }
     constexpr square get_en_passant_target() const { return en_passant_target; }
     constexpr bitboard get_occupancy() const { return occupancy_board; }
