@@ -24,6 +24,7 @@ int main() {
     debug::perft_test(board, 4);
     debug::perft_test(board, 5);
     debug::perft_test(board, 6);
+    debug::perft_test(board, 7);
 
     return 0;
 }
