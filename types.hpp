@@ -217,28 +217,20 @@ constexpr bitboard shift(bitboard board, Direction dir, int amt = 1) {
     switch (dir) {
         case NORTH:
             return board << (8 * amt);
-            break;
         case SOUTH:
             return board >> (8 * amt);
-            break;
         case EAST:
             return (board & ~rightcum_file_masks[amt - 1]) << amt;
-            break;
         case WEST:
             return (board & ~leftcum_file_masks[amt - 1]) >> amt;
-            break;
         case NORTHEAST:
             return (board & ~rightcum_file_masks[amt - 1]) << (9 * amt);
-            break;
         case SOUTHEAST:
             return (board & ~rightcum_file_masks[amt - 1]) >> (7 * amt);
-            break;
         case SOUTHWEST:
             return (board & ~leftcum_file_masks[amt - 1]) >> (9 * amt);
-            break;
         case NORTHWEST:
             return (board & ~leftcum_file_masks[amt - 1]) << (7 * amt);
-            break;
         default:
             return board;
     }

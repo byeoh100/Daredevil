@@ -9,6 +9,8 @@ std::array<bitboard, 64> king_attacks;
 // move possibilities corner/edge/interior:
 // 4*2^12 + 6*2^11 + 36*2^10 sized = 102,400
 std::array<bitboard, 102400> rook_attacks{};
+std::array<bitboard, 64> rook_blockers{};
+std::array<bitboard, 64> rook_blocker_bits{};
 constexpr std::array<u64, 64> rook_magics{
     // hardcoded magics generated with init
     612489663141167106ULL,  36063982465110144ULL,    72066666367836162ULL,
@@ -39,6 +41,8 @@ std::array<int, 64> rook_offsets;
 // move possibilities(bottom left of square) center(d4)/inner ring(c3)/outer
 // ring(b2) + edge/corner: 4*2^9 + 12*2^7 + 44*2^5 + 4*2^6 = 5248
 std::array<bitboard, 5248> bishop_attacks{};
+std::array<bitboard, 64> bishop_blockers{};
+std::array<bitboard, 64> bishop_blocker_bits{};
 constexpr std::array<u64, 64> bishop_magics{
     722308776141258816ULL,   13836263130780532752ULL, 4516796185315344ULL,
     6830728872466432ULL,     723958175624103232ULL,   72356670059053056ULL,
@@ -78,6 +82,33 @@ std::array<bitboard, 64> black_pawn_attacks;
 
 //     return dist(gen) & dist(gen) & dist(gen);
 // }
+
+void init_rook_blockers() {
+    for (square sq = 0; sq < 64; sq++) {
+        int rank = sq / 8;
+        int file = sq % 8;
+
+        bitboard rook_board = 1ULL << sq;
+        bitboard raw_attacks =
+            (file_masks[file] | rank_masks[rank]) & ~(rook_board);
+        bitboard blocker_mask;
+
+        if (rook_board & CORNER_SQUARES) {
+            blocker_mask = raw_attacks & EDGE_SQUARES;
+        } else if (rook_board & EDGE_SQUARES) {
+            blocker_mask = raw_attacks & ~(CORNER_SQUARES);
+            if (rank == 0) blocker_mask &= ~rank_masks[RANK_8];
+            if (rank == 7) blocker_mask &= ~rank_masks[RANK_1];
+            if (file == 0) blocker_mask &= ~file_masks[FILE_H];
+            if (file == 7) blocker_mask &= ~file_masks[FILE_A];
+        } else {
+            blocker_mask = raw_attacks & ~(EDGE_SQUARES);
+        }
+
+        rook_blockers[sq] = blocker_mask;
+        rook_blocker_bits[sq] = 64 - std::popcount(blocker_mask);
+    }
+}
 
 void init_rook_offsets() {
     int offset = 0;
@@ -125,6 +156,23 @@ void init_bishop_offsets() {
     }
 }
 
+void init_bishop_blockers() {
+    for (square sq = 0; sq < 64; sq++) {
+        int rank = sq / 8;
+        int file = sq % 8;
+
+        bitboard bishop_board = 1ULL << sq;
+        int diag = 7 + rank - file;
+        int antidiag = rank + file;
+
+        bitboard raw_attacks =
+            (diagonal_masks[diag] | antidiagonal_masks[antidiag]) & ~(bishop_board);
+
+        bishop_blockers[sq] = raw_attacks & ~(CORNER_SQUARES) & ~(EDGE_SQUARES);
+        bishop_blocker_bits[sq] = 64 - std::popcount(bishop_blockers[sq]);
+    }
+}
+
 bitboard fire_ray(bitboard start, bitboard blocker, Direction dir) {
     bitboard ray = 0ULL;
     while (start) {
@@ -133,7 +181,7 @@ bitboard fire_ray(bitboard start, bitboard blocker, Direction dir) {
         if ((start | blocker) == blocker) break;
     }
     return ray;
-};
+}
 
 }  // namespace
 
@@ -143,14 +191,6 @@ void init_all_pieces() {
     init_bishop_attacks_array();
     init_knight_attacks_array();
     init_pawn_attacks_array();
-}
-
-bitboard mask_king_attacks(const bitboard king_board) {
-    return (
-        types::shift(king_board, NORTH) | types::shift(king_board, NORTHEAST) |
-        types::shift(king_board, EAST) | types::shift(king_board, SOUTHEAST) |
-        types::shift(king_board, SOUTH) | types::shift(king_board, SOUTHWEST) |
-        types::shift(king_board, WEST) | types::shift(king_board, NORTHWEST));
 }
 
 void init_king_attacks_array() {
@@ -165,33 +205,6 @@ bitboard get_king_attack(square sq) { return king_attacks[sq]; }
 bitboard get_queen_attack(square sq, bitboard blocker_board) {
     return get_rook_attack(sq, blocker_board) |
            get_bishop_attack(sq, blocker_board);
-}
-
-bitboard get_rook_blocker_mask(square sq) {
-    // mask the raw row first - the edges
-    // those are your blockers
-
-    int rank = sq / 8;
-    int file = sq % 8;
-
-    bitboard rook_board = 1ULL << sq;
-    bitboard raw_attacks =
-        (file_masks[file] | rank_masks[rank]) & ~(rook_board);
-    bitboard blocker_mask;
-
-    if (rook_board & CORNER_SQUARES) {
-        blocker_mask = raw_attacks & EDGE_SQUARES;
-    } else if (rook_board & EDGE_SQUARES) {
-        blocker_mask = raw_attacks & ~(CORNER_SQUARES);
-        if (rank == 0) blocker_mask &= ~rank_masks[RANK_8];
-        if (rank == 7) blocker_mask &= ~rank_masks[RANK_1];
-        if (file == 0) blocker_mask &= ~file_masks[FILE_H];
-        if (file == 7) blocker_mask &= ~file_masks[FILE_A];
-    } else {
-        blocker_mask = raw_attacks & ~(EDGE_SQUARES);
-    }
-
-    return blocker_mask;
 }
 
 bitboard raycast_rook_attacks(square sq, bitboard blocker_board) {
@@ -225,6 +238,7 @@ bitboard raycast_rook_attacks(square sq, bitboard blocker_board) {
 // *bit settings for rook on a1*
 void init_rook_attacks_array() {
     init_rook_offsets();
+    init_rook_blockers();
     auto write_bit_settings = [](bitboard mask, int bits) {
         bitboard output = 0ULL;
         while (mask) {
@@ -239,7 +253,7 @@ void init_rook_attacks_array() {
     };
 
     for (square sq = 0; sq < 64; sq++) {
-        bitboard blocker_mask = get_rook_blocker_mask(sq);
+        bitboard blocker_mask = rook_blockers[sq];
 
         int relevant_bits = std::popcount(blocker_mask);
         // u64 candidate = gen_magic_candidate();
@@ -278,25 +292,11 @@ void init_rook_attacks_array() {
 }
 
 bitboard get_rook_attack(square sq, bitboard blocker_board) {
-    blocker_board &= get_rook_blocker_mask(sq);
+    blocker_board &= rook_blockers[sq];
     int idx =
         (rook_offsets[sq] + ((rook_magics[sq] * blocker_board) >>
-                             (64 - std::popcount(get_rook_blocker_mask(sq)))));
+                             rook_blocker_bits[sq]));
     return rook_attacks[idx];
-}
-
-bitboard get_bishop_blocker_mask(square sq) {
-    int rank = sq / 8;
-    int file = sq % 8;
-
-    bitboard bishop_board = 1ULL << sq;
-    int diag = 7 + rank - file;
-    int antidiag = rank + file;
-
-    bitboard raw_attacks =
-        (diagonal_masks[diag] | antidiagonal_masks[antidiag]) & ~(bishop_board);
-
-    return raw_attacks & ~(CORNER_SQUARES) & ~(EDGE_SQUARES);
 }
 
 bitboard raycast_bishop_attacks(square sq, bitboard blocker_board) {
@@ -319,6 +319,7 @@ bitboard raycast_bishop_attacks(square sq, bitboard blocker_board) {
 
 void init_bishop_attacks_array() {
     init_bishop_offsets();
+    init_bishop_blockers();
     auto write_bit_settings = [](bitboard mask, int bits) {
         bitboard output = 0ULL;
         while (mask) {
@@ -333,7 +334,7 @@ void init_bishop_attacks_array() {
     };
 
     for (square sq = 0; sq < 64; sq++) {
-        bitboard blocker_mask = get_bishop_blocker_mask(sq);
+        bitboard blocker_mask = bishop_blockers[sq];
 
         int relevant_bits = std::popcount(blocker_mask);
         // u64 candidate = gen_magic_candidate();
@@ -372,25 +373,11 @@ void init_bishop_attacks_array() {
 }
 
 bitboard get_bishop_attack(square sq, bitboard blocker_board) {
-    blocker_board &= get_bishop_blocker_mask(sq);
+    blocker_board &= bishop_blockers[sq];
     int idx = (bishop_offsets[sq] +
                ((bishop_magics[sq] * blocker_board) >>
-                (64 - std::popcount(get_bishop_blocker_mask(sq)))));
+                bishop_blocker_bits[sq]));
     return bishop_attacks[idx];
-}
-
-bitboard mask_knight_attacks(const bitboard knight_board) {
-    // travel out by two in all directions, then take a perpendicular step once
-
-    bitboard north_two = types::shift(knight_board, NORTH, 2);
-    bitboard south_two = types::shift(knight_board, SOUTH, 2);
-    bitboard east_two = types::shift(knight_board, EAST, 2);
-    bitboard west_two = types::shift(knight_board, WEST, 2);
-
-    return (types::shift(north_two, EAST) | types::shift(north_two, WEST) |
-            types::shift(south_two, EAST) | types::shift(south_two, WEST) |
-            types::shift(east_two, NORTH) | types::shift(east_two, SOUTH) |
-            types::shift(west_two, NORTH) | types::shift(west_two, SOUTH));
 }
 
 void init_knight_attacks_array() {
@@ -401,31 +388,6 @@ void init_knight_attacks_array() {
 }
 
 bitboard get_knight_attack(square sq) { return knight_attacks[sq]; }
-
-bitboard mask_pawn_attacks(const bitboard pawn_board, Color color) {
-    if (color == WHITE) {
-        return types::shift(pawn_board, NORTHWEST) |
-               types::shift(pawn_board, NORTHEAST);
-    } else {
-        return types::shift(pawn_board, SOUTHWEST) |
-               types::shift(pawn_board, SOUTHEAST);
-    }
-}
-
-bitboard mask_pawn_quiets(bitboard pawn_board, Color color,
-                          bitboard blocker_board) {
-    if (color == WHITE) {
-        pawn_board = types::shift(pawn_board, NORTH) & ~(blocker_board);
-        bitboard double_move = types::shift(pawn_board, NORTH) &
-                               ~(blocker_board) & (rank_masks[RANK_4]);
-        return pawn_board | double_move;
-    } else {
-        pawn_board = types::shift(pawn_board, SOUTH) & ~(blocker_board);
-        bitboard double_move = types::shift(pawn_board, SOUTH) &
-                               ~(blocker_board) & (rank_masks[RANK_5]);
-        return pawn_board | double_move;
-    }
-}
 
 void init_pawn_attacks_array() {
     for (square sq = 0; sq < 64; sq++) {
@@ -448,7 +410,6 @@ bitboard get_pawn_attack(square sq, Color color) {
 // --------------------------------
 
 void generate_moves(const GameBoard& game_board, MoveList& move_list) {
-    std::fill(std::begin(move_list.moves), std::end(move_list.moves), 0);
     move_list.count = 0;
 
     bitboard blocker_board = game_board.get_occupancy();
@@ -496,14 +457,14 @@ void generate_moves(const GameBoard& game_board, MoveList& move_list) {
                 !(kingside_mask & blocker_board)
                 // perhaps add rook validation
             )
-                move_list.push(moves::encode_move(source, source + 2 * EAST,
-                                                  king_color, CASTLE_KINGSIDE));
+                move_list.push(encoder::encode_move(
+                    source, source + 2 * EAST, king_color, CASTLE_KINGSIDE));
             if (queenside_castle &&
                 !is_sq_attacked(source, game_board, color) &&
                 !is_sq_attacked(source + WEST, game_board, color) &&
                 !is_sq_attacked(source + 2 * WEST, game_board, color) &&
                 !(queenside_mask & blocker_board))
-                move_list.push(moves::encode_move(
+                move_list.push(encoder::encode_move(
                     source, source + 2 * WEST, king_color, CASTLE_QUEENSIDE));
         }
 
@@ -512,11 +473,11 @@ void generate_moves(const GameBoard& game_board, MoveList& move_list) {
             target = utils::pop_lsb(curr_king_attacks);
             if (!is_sq_attacked(target, game_board, color)) {
                 if ((1ULL << target) & enemy_pieces) {
-                    move_list.push(moves::encode_move(source, target,
-                                                      king_color, CAPTURE));
+                    move_list.push(encoder::encode_move(source, target,
+                                                        king_color, CAPTURE));
                 } else if (!((1ULL << target) & friendly_pieces)) {
-                    move_list.push(moves::encode_move(source, target,
-                                                      king_color, QUIET_MOVE));
+                    move_list.push(encoder::encode_move(
+                        source, target, king_color, QUIET_MOVE));
                 }
             }
         }
@@ -532,10 +493,10 @@ void generate_moves(const GameBoard& game_board, MoveList& move_list) {
             target = utils::pop_lsb(curr_queen_attacks);
             if ((1ULL << target) & enemy_pieces) {
                 move_list.push(
-                    moves::encode_move(source, target, queen_color, CAPTURE));
+                    encoder::encode_move(source, target, queen_color, CAPTURE));
             } else if (!((1ULL << target) & friendly_pieces)) {
-                move_list.push(moves::encode_move(source, target, queen_color,
-                                                  QUIET_MOVE));
+                move_list.push(encoder::encode_move(source, target, queen_color,
+                                                    QUIET_MOVE));
             }
         }
     }
@@ -548,10 +509,10 @@ void generate_moves(const GameBoard& game_board, MoveList& move_list) {
             target = utils::pop_lsb(curr_rook_attacks);
             if ((1ULL << target) & enemy_pieces) {
                 move_list.push(
-                    moves::encode_move(source, target, rook_color, CAPTURE));
+                    encoder::encode_move(source, target, rook_color, CAPTURE));
             } else if (!((1ULL << target) & friendly_pieces)) {
-                move_list.push(
-                    moves::encode_move(source, target, rook_color, QUIET_MOVE));
+                move_list.push(encoder::encode_move(source, target, rook_color,
+                                                    QUIET_MOVE));
             }
         }
     }
@@ -563,11 +524,11 @@ void generate_moves(const GameBoard& game_board, MoveList& move_list) {
         while (curr_bishop_attacks) {
             target = utils::pop_lsb(curr_bishop_attacks);
             if ((1ULL << target) & enemy_pieces) {
-                move_list.push(
-                    moves::encode_move(source, target, bishop_color, CAPTURE));
+                move_list.push(encoder::encode_move(source, target,
+                                                    bishop_color, CAPTURE));
             } else if (!((1ULL << target) & friendly_pieces)) {
-                move_list.push(moves::encode_move(source, target, bishop_color,
-                                                  QUIET_MOVE));
+                move_list.push(encoder::encode_move(source, target,
+                                                    bishop_color, QUIET_MOVE));
             }
         }
     }
@@ -581,11 +542,11 @@ void generate_moves(const GameBoard& game_board, MoveList& move_list) {
         while (curr_knight_attacks) {
             target = utils::pop_lsb(curr_knight_attacks);
             if ((1ULL << target) & enemy_pieces) {
-                move_list.push(
-                    moves::encode_move(source, target, knight_color, CAPTURE));
+                move_list.push(encoder::encode_move(source, target,
+                                                    knight_color, CAPTURE));
             } else if (!((1ULL << target) & friendly_pieces)) {
-                move_list.push(moves::encode_move(source, target, knight_color,
-                                                  QUIET_MOVE));
+                move_list.push(encoder::encode_move(source, target,
+                                                    knight_color, QUIET_MOVE));
             }
         }
     }
@@ -625,20 +586,20 @@ void generate_moves(const GameBoard& game_board, MoveList& move_list) {
             if (target >= promo_lower && target <= promo_upper) {
                 for (MoveFlag promo :
                      {PROMOTION_N, PROMOTION_B, PROMOTION_R, PROMOTION_Q})
-                    move_list.push(
-                        moves::encode_move(source, target, pawn_color, promo));
+                    move_list.push(encoder::encode_move(source, target,
+                                                        pawn_color, promo));
             }
             // Single push
             else {
-                move_list.push(
-                    moves::encode_move(source, target, pawn_color, QUIET_MOVE));
+                move_list.push(encoder::encode_move(source, target, pawn_color,
+                                                    QUIET_MOVE));
             }
 
             // Double push
             if (source >= double_lower && source <= double_upper &&
                 !((1ULL << (target + push_amt)) & blocker_board)) {
-                move_list.push(moves::encode_move(source, target + push_amt,
-                                                  pawn_color, DOUBLE_MOVE));
+                move_list.push(encoder::encode_move(source, target + push_amt,
+                                                    pawn_color, DOUBLE_MOVE));
             }
         }
 
@@ -650,26 +611,21 @@ void generate_moves(const GameBoard& game_board, MoveList& move_list) {
                 if (target >= promo_lower && target <= promo_upper) {
                     for (MoveFlag promo : {CAPTURE_PROMO_N, CAPTURE_PROMO_B,
                                            CAPTURE_PROMO_R, CAPTURE_PROMO_Q})
-                        move_list.push(moves::encode_move(source, target,
-                                                          pawn_color, promo));
+                        move_list.push(encoder::encode_move(source, target,
+                                                            pawn_color, promo));
                 } else {
-                    move_list.push(moves::encode_move(source, target,
-                                                      pawn_color, CAPTURE));
+                    move_list.push(encoder::encode_move(source, target,
+                                                        pawn_color, CAPTURE));
                 }
             } else if (game_board.get_en_passant_target() != NO_SQUARE &&
                        target == game_board.get_en_passant_target()) {
-                move_list.push(
-                    moves::encode_move(source, target, pawn_color, EN_PASSANT));
+                move_list.push(encoder::encode_move(source, target, pawn_color,
+                                                    EN_PASSANT));
             }
         }
     }
 }
 
-// get attacks in bulk
-// bitboard get_side_attack(std::span<const bitboard> all_pieces, bitboard
-// blocker_board, Color color);
-
-// }
 bool is_sq_attacked(square sq, const GameBoard& game_board, Color color) {
     bitboard blocker_board = game_board.get_occupancy();
 
@@ -678,7 +634,7 @@ bool is_sq_attacked(square sq, const GameBoard& game_board, Color color) {
         game_board.get_piece_set(color == WHITE ? BLACK : WHITE);
 
     if (
-        // rewrite to just index the array directly lmao
+        // rewrite to just index the array directly
         king_attacks[sq] & king ||
         get_queen_attack(sq, blocker_board) & queen ||
         get_rook_attack(sq, blocker_board) & rook ||

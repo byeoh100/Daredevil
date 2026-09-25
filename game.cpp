@@ -6,8 +6,6 @@ void GameBoard::set_piece(Piece piece, square idx) {
     update_boards();
 }
 
-bitboard GameBoard::get_piece(Piece piece) const { return all_pieces[piece]; }
-
 void GameBoard::clear_piece(Piece piece, square sq) {
     utils::pop_bit(all_pieces[piece], sq);
     update_boards();
@@ -191,11 +189,6 @@ void GameBoard::update_boards() {
     occupancy_board = white_board | black_board;
 }
 
-bitboard GameBoard::get_occupancy() const { return occupancy_board; }
-
-bitboard GameBoard::get_white_board() const { return white_board; }
-bitboard GameBoard::get_black_board() const { return black_board; }
-
 std::tuple<bitboard, bitboard, bitboard, bitboard, bitboard, bitboard>
 GameBoard::get_piece_set(Color color) const {
     if (color == WHITE) {
@@ -209,21 +202,15 @@ GameBoard::get_piece_set(Color color) const {
     }
 }
 
-Color GameBoard::get_to_move() const { return to_move; }
-
-square GameBoard::get_en_passant_target() const { return en_passant_target; }
-
-u8 GameBoard::get_castle_rights() const { return castle_rights; }
-
 void GameBoard::set_castle_rights(u8 cr) { castle_rights = cr; }
 
 bool GameBoard::make_move(u32 move) {
     GameBoard save = *this;
 
-    square source = moves::get_move_source(move);
-    square target = moves::get_move_target(move);
-    Piece piece = moves::get_move_piece(move);
-    MoveFlag flag = moves::get_move_flag(move);
+    square source = encoder::get_move_source(move);
+    square target = encoder::get_move_target(move);
+    Piece piece = encoder::get_move_piece(move);
+    MoveFlag flag = encoder::get_move_flag(move);
 
     // for promotions
     Piece new_piece = piece;

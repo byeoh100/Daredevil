@@ -12,9 +12,9 @@
 #include <string>
 #include <vector>
 
+#include "encoder.hpp"
 #include "game.hpp"
 #include "movegen.hpp"
-#include "moves.hpp"
 #include "types.hpp"
 #include "utils.hpp"
 

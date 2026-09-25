@@ -13,8 +13,8 @@
 #include <tuple>
 #include <vector>
 
+#include "encoder.hpp"
 #include "movegen.hpp"
-#include "moves.hpp"
 #include "types.hpp"
 #include "utils.hpp"
 
@@ -31,23 +31,20 @@ private:
     bitboard occupancy_board;
 
 public:
-    Color get_to_move() const;
-
-    void set_piece(Piece piece, square board_idx);
-    bitboard get_piece(Piece piece) const;
-    void clear_piece(Piece piece, square sq);
+    constexpr Color get_to_move() const { return to_move; }
+    constexpr bitboard get_piece(Piece piece) const { return all_pieces[piece]; }
+    constexpr u8 get_castle_rights() const { return castle_rights; }
+    constexpr square get_en_passant_target() const { return en_passant_target; }
+    constexpr bitboard get_occupancy() const { return occupancy_board; }
+    constexpr bitboard get_white_board() const { return white_board; }
+    constexpr bitboard get_black_board() const { return black_board; }
 
     std::span<const bitboard> get_piece_view() const;
-
-    u8 get_castle_rights() const;
+    void set_piece(Piece piece, square board_idx);
+    void clear_piece(Piece piece, square sq);
     void set_castle_rights(u8 cr);
 
-    square get_en_passant_target() const;
-
     void update_boards();
-    bitboard get_occupancy() const;
-    bitboard get_white_board() const;
-    bitboard get_black_board() const;
     std::tuple<bitboard, bitboard, bitboard, bitboard, bitboard, bitboard>
     get_piece_set(Color color) const;
 

@@ -55,7 +55,7 @@ void perft_test(const GameBoard& game_board, int depth) {
 }
 
 void perft_print(u32 encoded_move, u64 nodes) {
-    Move move = moves::decode_move(encoded_move);
+    Move move = encoder::decode_move(encoded_move);
 
     std::cout << utils::square_to_algebraic(move.source)
               << utils::square_to_algebraic(move.target) << " - " << nodes

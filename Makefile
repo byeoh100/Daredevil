@@ -1,10 +1,10 @@
 CXX=g++
 
-CXXFLAGS = -std=c++23 -Wall -Wextra -Wno-unused-parameter -O2 # for ubuntu
-# CXXFLAGS = -g -std=c++2b -Wall -Wextra -Wno-unused-parameter -O2 # for mac
+CXXFLAGS = -std=c++23 -Wall -Wextra -Wno-unused-parameter -O2 -march=native -flto # for ubuntu
+# CXXFLAGS = -g -std=c++2b -Wall -Wextra -Wno-unused-parameter -O2 -march=native -flto # for mac
 TARGET = engine
 
-OBJ = main.o game.o movegen.o utils.o moves.o debug.o
+OBJ = main.o game.o movegen.o utils.o encoder.o debug.o
 
 $(TARGET): $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJ)
@@ -12,17 +12,17 @@ $(TARGET): $(OBJ)
 main.o: main.cpp game.hpp movegen.hpp utils.hpp
 	$(CXX) $(CXXFLAGS) -c main.cpp
 
-debug.o: debug.cpp debug.hpp utils.cpp game.cpp moves.cpp movegen.cpp
+debug.o: debug.cpp debug.hpp utils.cpp game.cpp encoder.cpp movegen.cpp
 	$(CXX) $(CXXFLAGS) -c debug.cpp
 
-game.o: game.cpp game.hpp utils.cpp moves.cpp movegen.cpp
+game.o: game.cpp game.hpp utils.cpp encoder.cpp movegen.cpp
 	$(CXX) $(CXXFLAGS) -c game.cpp
 
-movegen.o: movegen.cpp movegen.hpp utils.cpp game.cpp moves.cpp
+movegen.o: movegen.cpp movegen.hpp utils.cpp game.cpp encoder.cpp
 	$(CXX) $(CXXFLAGS) -c movegen.cpp
 
-moves.o: moves.cpp moves.hpp utils.cpp
-	$(CXX) $(CXXFLAGS) -c moves.cpp
+encoder.o: encoder.cpp encoder.hpp utils.cpp
+	$(CXX) $(CXXFLAGS) -c encoder.cpp
 
 utils.o: utils.cpp utils.hpp
 	$(CXX) $(CXXFLAGS) -c utils.cpp
