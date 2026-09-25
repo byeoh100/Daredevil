@@ -1,11 +1,12 @@
 #include "utils.hpp"
 
-void print_bitboard(u64 bitboard) {
+namespace utils {
+void print_bitboard(bitboard board) {
     for (int rank = 7; rank >= 0; rank--) {
         for (int file = 0; file < 8; file++) {
-            int square = rank * 8 + file;
+            square sq = rank * 8 + file;
 
-            if ((bitboard >> square) & 1ULL) {
+            if ((board >> sq) & 1ULL) {
                 std::cout << "1 ";
             } else {
                 std::cout << "_ ";
@@ -16,7 +17,7 @@ void print_bitboard(u64 bitboard) {
     std::cout << "\n";
 }
 
-Piece char_to_piece(const char& c) {
+Piece char_to_piece(char c) {
     switch (c) {
         case 'k':
             return BLACK_KING;
@@ -58,3 +59,21 @@ Piece char_to_piece(const char& c) {
             return NO_PIECE;
     }
 }
+
+std::string square_to_algebraic(square sq) {
+    if (sq == NO_SQUARE) return "-";
+
+    std::string algebraic;
+    algebraic += static_cast<char>('a' + sq % 8);
+    algebraic += static_cast<char>('1' + sq / 8);
+    return algebraic;
+}
+
+square algebraic_to_square(const std::string& algebraic) {
+    if (algebraic == "-") return NO_SQUARE;
+
+    int file = algebraic[0] - 'a';
+    int rank = algebraic[1] - '1';
+    return rank * 8 + file;
+}
+}  // namespace utils

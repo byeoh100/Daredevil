@@ -6,7 +6,13 @@
 #include <string>
 #include <vector>
 
+using u8 = std::uint8_t;
+using u16 = std::uint16_t;
+using u32 = std::uint32_t;
 using u64 = std::uint64_t;
+
+// A set of squares, one bit per square (bit 0 = a1, bit 63 = h8)
+using bitboard = u64;
 
 enum Color { WHITE, BLACK };
 
@@ -124,7 +130,7 @@ enum SquareIndex : int {
 };
 
 // need cleanup on this
-using Square = int;
+using square = int;
 
 enum File {
     FILE_A,
@@ -148,9 +154,9 @@ enum Rank {
     RANK_8,
 };
 
-const u64 FILE_A_MASK = 0x0101010101010101;
+inline constexpr bitboard FILE_A_MASK = 0x0101010101010101ULL;
 // access with file_masks[File];
-constexpr std::array<u64, 8> file_masks = {
+inline constexpr std::array<bitboard, 8> file_masks = {
     FILE_A_MASK,
     FILE_A_MASK << 1,  // FILE B
     FILE_A_MASK << 2,  // FILE C
@@ -159,9 +165,9 @@ constexpr std::array<u64, 8> file_masks = {
     FILE_A_MASK << 7,  // FILE H
 };
 
-const u64 RANK_1_MASK = 0xff;
+inline constexpr bitboard RANK_1_MASK = 0xffULL;
 // access with rank_masks[Rank]
-constexpr std::array<u64, 8> rank_masks = {
+inline constexpr std::array<bitboard, 8> rank_masks = {
     RANK_1_MASK,
     RANK_1_MASK << 8,   // RANK 2
     RANK_1_MASK << 16,  // RANK 3
@@ -171,7 +177,7 @@ constexpr std::array<u64, 8> rank_masks = {
 };
 
 // Cumulative file masking (useful for cleaning up bulk shifts)
-constexpr std::array<u64, 8> leftcum_file_masks = {
+inline constexpr std::array<bitboard, 8> leftcum_file_masks = {
     file_masks[FILE_A],
     file_masks[FILE_A] | file_masks[FILE_B],
     file_masks[FILE_A] | file_masks[FILE_B] | file_masks[FILE_C],
@@ -188,7 +194,7 @@ constexpr std::array<u64, 8> leftcum_file_masks = {
         file_masks[FILE_D] | file_masks[FILE_E] | file_masks[FILE_F] |
         file_masks[FILE_G] | file_masks[FILE_H]};
 
-constexpr std::array<u64, 8> rightcum_file_masks = {
+inline constexpr std::array<bitboard, 8> rightcum_file_masks = {
     file_masks[FILE_H],
     file_masks[FILE_H] | file_masks[FILE_G],
     file_masks[FILE_H] | file_masks[FILE_G] | file_masks[FILE_F],
@@ -206,7 +212,8 @@ constexpr std::array<u64, 8> rightcum_file_masks = {
         file_masks[FILE_B] | file_masks[FILE_A]};
 
 // refactor some masks with this
-constexpr u64 shift(u64 board, const Direction& dir, const int amt = 1) {
+namespace types {
+constexpr bitboard shift(bitboard board, Direction dir, int amt = 1) {
     switch (dir) {
         case NORTH:
             return board << (8 * amt);
@@ -236,46 +243,57 @@ constexpr u64 shift(u64 board, const Direction& dir, const int amt = 1) {
             return board;
     }
 }
+}  // namespace types
 
 // Longest diagonals
-const u64 DIAG_8_MASK = 9241421688590303745ULL;    // Square a1 -> h8
-const u64 ANTIDIAG_8_MASK = 72624976668147840ULL;  // Square h1 -> a8
+inline constexpr bitboard DIAG_8_MASK =
+    9241421688590303745ULL;  // Square a1 -> h8
+inline constexpr bitboard ANTIDIAG_8_MASK =
+    72624976668147840ULL;  // Square h1 -> a8
 
 // 7 + rank - file
-constexpr std::array<u64, 15> diagonal_masks = {
-    shift(DIAG_8_MASK, EAST, 7), shift(DIAG_8_MASK, EAST, 6),
-    shift(DIAG_8_MASK, EAST, 5), shift(DIAG_8_MASK, EAST, 4),
-    shift(DIAG_8_MASK, EAST, 3), shift(DIAG_8_MASK, EAST, 2),
-    shift(DIAG_8_MASK, EAST),    DIAG_8_MASK,
-    shift(DIAG_8_MASK, WEST),    shift(DIAG_8_MASK, WEST, 2),
-    shift(DIAG_8_MASK, WEST, 3), shift(DIAG_8_MASK, WEST, 4),
-    shift(DIAG_8_MASK, WEST, 5), shift(DIAG_8_MASK, WEST, 6),
-    shift(DIAG_8_MASK, WEST, 7),
+inline constexpr std::array<bitboard, 15> diagonal_masks = {
+    types::shift(DIAG_8_MASK, EAST, 7), types::shift(DIAG_8_MASK, EAST, 6),
+    types::shift(DIAG_8_MASK, EAST, 5), types::shift(DIAG_8_MASK, EAST, 4),
+    types::shift(DIAG_8_MASK, EAST, 3), types::shift(DIAG_8_MASK, EAST, 2),
+    types::shift(DIAG_8_MASK, EAST),    DIAG_8_MASK,
+    types::shift(DIAG_8_MASK, WEST),    types::shift(DIAG_8_MASK, WEST, 2),
+    types::shift(DIAG_8_MASK, WEST, 3), types::shift(DIAG_8_MASK, WEST, 4),
+    types::shift(DIAG_8_MASK, WEST, 5), types::shift(DIAG_8_MASK, WEST, 6),
+    types::shift(DIAG_8_MASK, WEST, 7),
 };
 // rank + file
-constexpr std::array<u64, 15> antidiagonal_masks = {
-    shift(ANTIDIAG_8_MASK, WEST, 7), shift(ANTIDIAG_8_MASK, WEST, 6),
-    shift(ANTIDIAG_8_MASK, WEST, 5), shift(ANTIDIAG_8_MASK, WEST, 4),
-    shift(ANTIDIAG_8_MASK, WEST, 3), shift(ANTIDIAG_8_MASK, WEST, 2),
-    shift(ANTIDIAG_8_MASK, WEST),    ANTIDIAG_8_MASK,
-    shift(ANTIDIAG_8_MASK, EAST),    shift(ANTIDIAG_8_MASK, EAST, 2),
-    shift(ANTIDIAG_8_MASK, EAST, 3), shift(ANTIDIAG_8_MASK, EAST, 4),
-    shift(ANTIDIAG_8_MASK, EAST, 5), shift(ANTIDIAG_8_MASK, EAST, 6),
-    shift(ANTIDIAG_8_MASK, EAST, 7),
+inline constexpr std::array<bitboard, 15> antidiagonal_masks = {
+    types::shift(ANTIDIAG_8_MASK, WEST, 7),
+    types::shift(ANTIDIAG_8_MASK, WEST, 6),
+    types::shift(ANTIDIAG_8_MASK, WEST, 5),
+    types::shift(ANTIDIAG_8_MASK, WEST, 4),
+    types::shift(ANTIDIAG_8_MASK, WEST, 3),
+    types::shift(ANTIDIAG_8_MASK, WEST, 2),
+    types::shift(ANTIDIAG_8_MASK, WEST),
+    ANTIDIAG_8_MASK,
+    types::shift(ANTIDIAG_8_MASK, EAST),
+    types::shift(ANTIDIAG_8_MASK, EAST, 2),
+    types::shift(ANTIDIAG_8_MASK, EAST, 3),
+    types::shift(ANTIDIAG_8_MASK, EAST, 4),
+    types::shift(ANTIDIAG_8_MASK, EAST, 5),
+    types::shift(ANTIDIAG_8_MASK, EAST, 6),
+    types::shift(ANTIDIAG_8_MASK, EAST, 7),
 };
 
-const u64 CORNER_SQUARES = 9295429630892703873ULL;
-const u64 EDGE_SQUARES = (file_masks[FILE_A] | file_masks[FILE_H] |
-                          rank_masks[RANK_1] | rank_masks[RANK_8]) &
-                         ~(CORNER_SQUARES);
-const u64 BOARD_EDGE = CORNER_SQUARES | EDGE_SQUARES;
+inline constexpr bitboard CORNER_SQUARES = 9295429630892703873ULL;
+inline constexpr bitboard EDGE_SQUARES =
+    (file_masks[FILE_A] | file_masks[FILE_H] | rank_masks[RANK_1] |
+     rank_masks[RANK_8]) &
+    ~(CORNER_SQUARES);
+inline constexpr bitboard BOARD_EDGE = CORNER_SQUARES | EDGE_SQUARES;
 
-constexpr std::uint8_t WHITE_KINGSIDE = 0b0001;
-constexpr std::uint8_t WHITE_QUEENSIDE = 0b0010;
-constexpr std::uint8_t BLACK_KINGSIDE = 0b0100;
-constexpr std::uint8_t BLACK_QUEENSIDE = 0b1000;
+inline constexpr u8 WHITE_KINGSIDE = 0b0001;
+inline constexpr u8 WHITE_QUEENSIDE = 0b0010;
+inline constexpr u8 BLACK_KINGSIDE = 0b0100;
+inline constexpr u8 BLACK_QUEENSIDE = 0b1000;
 
-enum MoveFlag : std::uint8_t {
+enum MoveFlag : u8 {
     // regular moves
     QUIET_MOVE = 0b0000,
     DOUBLE_MOVE = 0b0001,
@@ -298,29 +316,29 @@ enum MoveFlag : std::uint8_t {
     CAPTURE_PROMO_Q = 0b1111
 };
 
-constexpr std::uint8_t CASTLE_BIT = 0b0010;
-constexpr std::uint8_t CAPTURE_BIT = 0b0100;
-constexpr std::uint8_t PROMOTION_BIT = 0b1000;
+inline constexpr u8 CASTLE_BIT = 0b0010;
+inline constexpr u8 CAPTURE_BIT = 0b0100;
+inline constexpr u8 PROMOTION_BIT = 0b1000;
 
 struct Move {
-    Square source = NO_SQUARE;
-    Square target = NO_SQUARE;
+    square source = NO_SQUARE;
+    square target = NO_SQUARE;
     Piece piece = NO_PIECE;
     MoveFlag flag;
 };
 
 struct MoveList {
-    std::array<std::uint32_t, 256> moves{};
+    std::array<u32, 256> moves{};
     int count = 0;
 
-    void push(std::uint32_t move) {
+    void push(u32 move) {
         if (count < 256) {
             moves[count] = move;
             count++;
         }
     }
 
-    std::uint32_t pop() {
+    u32 pop() {
         if (count > 0) {
             count--;
             return moves[count];

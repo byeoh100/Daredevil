@@ -11,15 +11,19 @@
 
 #include "types.hpp"
 
-void print_bitboard(u64 bitboard);
+namespace utils {
+void print_bitboard(bitboard board);
 
-Piece char_to_piece(const char& c);
+Piece char_to_piece(char c);
 
-// rewrite some earlier logic with this
-constexpr void pop_bit(u64& bitboard, Square sq) { bitboard &= ~(1ULL << sq); }
+std::string square_to_algebraic(square sq);
+square algebraic_to_square(const std::string& algebraic);
 
-constexpr int pop_lsb(u64& bitboard) {
-    int index = std::countr_zero(bitboard);
-    bitboard &= (bitboard - 1);
+constexpr void pop_bit(bitboard& board, square sq) { board &= ~(1ULL << sq); }
+
+constexpr square pop_lsb(bitboard& board) {
+    square index = std::countr_zero(board);
+    board &= (board - 1);
     return index;
 }
+}  // namespace utils

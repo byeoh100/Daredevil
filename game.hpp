@@ -9,10 +9,11 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <vector>
 
-#include "attacks.hpp"
+#include "movegen.hpp"
 #include "moves.hpp"
 #include "types.hpp"
 #include "utils.hpp"
@@ -20,41 +21,41 @@
 class GameBoard {
 private:
     Color to_move;
-    std::array<u64, 12> all_pieces{0};
-    uint8_t castle_rights;
-    Square en_passant_target;
+    std::array<bitboard, 12> all_pieces{0ULL};
+    u8 castle_rights;
+    square en_passant_target;
     int half_move;
     int full_move;
-    u64 white_board;
-    u64 black_board;
-    u64 occupancy_board;
+    bitboard white_board;
+    bitboard black_board;
+    bitboard occupancy_board;
 
 public:
     Color get_to_move() const;
 
-    void set_piece(Piece piece, Square board_idx);
-    u64 get_piece(Piece piece) const;
-    void clear_piece(Piece piece, Square sq);
+    void set_piece(Piece piece, square board_idx);
+    bitboard get_piece(Piece piece) const;
+    void clear_piece(Piece piece, square sq);
 
-    std::span<const u64> get_all_pieces_view() const;
+    std::span<const bitboard> get_piece_view() const;
 
-    uint8_t get_castle_rights() const;
-    void set_castle_rights(uint8_t cr);
+    u8 get_castle_rights() const;
+    void set_castle_rights(u8 cr);
 
-    Square get_en_passant_target() const;
+    square get_en_passant_target() const;
 
     void update_boards();
-    u64 get_occupancy() const;
-    u64 get_white_board() const;
-    u64 get_black_board() const;
-    std::tuple<u64, u64, u64, u64, u64, u64> get_white_pieces() const;
-    std::tuple<u64, u64, u64, u64, u64, u64> get_black_pieces() const;
+    bitboard get_occupancy() const;
+    bitboard get_white_board() const;
+    bitboard get_black_board() const;
+    std::tuple<bitboard, bitboard, bitboard, bitboard, bitboard, bitboard>
+    get_piece_set(Color color) const;
 
-    bool make_move(std::uint32_t move);
+    bool make_move(u32 move);
 
     void init();
     void reset();
-    void load_from_fen(std::string fen);
+    void load_from_fen(std::string_view fen);
 
     void print();
     void print_pieces();  // make it print an individual piece?
