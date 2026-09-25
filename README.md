@@ -16,6 +16,8 @@ Most, if not all, of the techniques implemented are based on the information pro
       * Generator for unique magic values
   * Move encoding as integers
   * Move generation validation with performance test (perft) functions
+  * UCI protocol
+    * Tested with Cute Chess (random legal moves until search is added)
 
 ## Perft results
 Daredevil's ability to generate correct moves has been validated through comparing perft results to the pre-determined results on [CPW](https://chessprogramming.org/Perft_Results).
