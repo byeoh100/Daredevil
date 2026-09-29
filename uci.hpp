@@ -5,6 +5,8 @@
 
 #include "game.hpp"
 #include "types.hpp"
+#include "search.hpp"
+#include "eval.hpp"
 
 namespace uci {
 // Reads UCI commands from stdin until "quit" or end of input

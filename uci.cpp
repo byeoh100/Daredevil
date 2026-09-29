@@ -2,7 +2,6 @@
 
 #include <exception>
 #include <iostream>
-#include <random>
 #include <sstream>
 #include <string>
 
@@ -17,8 +16,6 @@ constexpr std::string_view ENGINE_NAME = "Daredevil";
 constexpr std::string_view ENGINE_AUTHOR = "byeoh100";
 constexpr std::string_view START_FEN =
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-std::mt19937 rng{std::random_device{}()};
 
 // Pseudo-legal moves from movegen, filtered through make_move's legality check
 MoveList get_legal_move_list(const GameBoard& game_board) {
@@ -105,24 +102,28 @@ void handle_perft(const GameBoard& game_board, int depth) {
 
 // go [wtime ..] [btime ..] [movetime ..] [depth ..] ... | go perft <depth>
 void handle_go(const GameBoard& game_board, std::istringstream& args) {
+    int depth = 2;
+
     std::string token;
-    if (args >> token && token == "perft") {
-        int depth = 1;
-        args >> depth;
-        handle_perft(game_board, depth);
-        return;
+    while (args >> token) {
+        if (token == "perft") {
+            int perft_depth = 1;
+            args >> perft_depth;
+            handle_perft(game_board, perft_depth);
+            return;
+        }
+        if (token == "depth") args >> depth;
+        // Time controls (wtime, btime, winc, binc, movetime) are ignored
+        // until search has time management
     }
 
-    // No search yet: every time control is ignored and a random legal move
-    // is played
-    MoveList legal = get_legal_move_list(game_board);
-    if (legal.count == 0) {
+    u32 best = search::search_best(game_board, depth);
+    if (best == 0) {
         std::cout << "bestmove 0000\n";
         return;
     }
 
-    std::uniform_int_distribution<int> pick(0, legal.count - 1);
-    std::cout << "bestmove " << move_to_uci(legal.moves[pick(rng)]) << "\n";
+    std::cout << "bestmove " << move_to_uci(best) << "\n";
 }
 }  // namespace
 
@@ -153,6 +154,9 @@ void loop() {
             // go is synchronous, so there is never a search to stop
         } else if (command == "d") {
             game_board.print();
+        } else if (command == "eval") {
+            std::cout << "eval " << eval::evaluate(game_board)
+                      << " (side to move)\n";
         } else if (command == "quit") {
             break;
         }
