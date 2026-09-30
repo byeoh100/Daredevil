@@ -3,10 +3,10 @@
 #include <string>
 #include <string_view>
 
-#include "game.hpp"
-#include "types.hpp"
-#include "search.hpp"
 #include "eval.hpp"
+#include "game.hpp"
+#include "search.hpp"
+#include "types.hpp"
 
 namespace uci {
 // Reads UCI commands from stdin until "quit" or end of input

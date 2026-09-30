@@ -13,11 +13,11 @@
 #include <tuple>
 #include <vector>
 
+#include "eval.hpp"
+#include "game.hpp"
+#include "movegen.hpp"
 #include "types.hpp"
 #include "utils.hpp"
-#include "game.hpp"
-#include "eval.hpp"
-#include "movegen.hpp"
 
 namespace search {
 
@@ -25,4 +25,4 @@ int nega_max(const GameBoard& game_board, int depth);
 
 u32 search_best(const GameBoard& game_board, int depth);
 
-}   // namespace search
+}  // namespace search

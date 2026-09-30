@@ -13,15 +13,16 @@
 #include <tuple>
 #include <vector>
 
+#include "game.hpp"
 #include "types.hpp"
 #include "utils.hpp"
-#include "game.hpp"
 
 namespace eval {
 
 // K, Q, R, B, N, P, k, q, r, b, n, p
 // no guard against NO_PIECE
-inline constexpr std::array<int, 12> piece_values = { 10000, 900, 500, 350, 300, 100, -10000, -900, -500, -350, -300, -100 };
+inline constexpr std::array<int, 12> piece_values = {
+    10000, 900, 500, 350, 300, 100, -10000, -900, -500, -350, -300, -100};
 
 // clang-format off
 // Tables pulled directly from https://chessprogramming.org/Simplified_Evaluation_Function
@@ -105,14 +106,9 @@ inline constexpr std::array<square, 64> king_table = {
 // };
 // clang-format on
 inline constexpr std::array<std::array<square, 64>, 6> piece_tables = {
-    king_table,
-    queen_table,
-    rook_table,
-    bishop_table,
-    knight_table,
-    pawn_table
-};
+    king_table,   queen_table,  rook_table,
+    bishop_table, knight_table, pawn_table};
 
 int evaluate(const GameBoard& game_board);
 
-} // namespace eval
+}  // namespace eval

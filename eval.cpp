@@ -11,7 +11,10 @@ int evaluate(const GameBoard& game_board) {
 
         while (piece_board) {
             square sq = utils::pop_lsb(piece_board);
-            (i < 6) ? score += piece_tables[i][sq] : score -= piece_tables[i - 6][sq ^ 56]; // flip the orientation to black
+            (i < 6) ? score += piece_tables[i][sq]
+                    : score -=
+                      piece_tables[i - 6]
+                                  [sq ^ 56];  // flip the orientation to black
             piece_count++;
         }
 
@@ -21,4 +24,6 @@ int evaluate(const GameBoard& game_board) {
     return (game_board.get_to_move() == WHITE) ? score : -score;
 }
 
-} // namespace eval
+}  // namespace eval
+
+// note to self: update the makefile to describe the new search + eval
