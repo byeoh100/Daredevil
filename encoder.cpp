@@ -4,10 +4,10 @@ namespace encoder {
 void print_move(u32 encoded_move) {
     Move move = decode_move(encoded_move);
 
-    constexpr std::array<std::string_view, 12> piece_names = {
-        "King(W)", "Queen(W)", "Rook(W)", "Bishop(W)", "Knight(W)", "Pawn(W)",
-        "King(B)", "Queen(B)", "Rook(B)", "Bishop(B)", "Knight(B)", "Pawn(B)"};
-    constexpr std::array<std::string_view, 16> flag_names = {
+    static constexpr std::array<std::string_view, 12> piece_names = {
+        "Pawn(W)", "Knight(W)", "Bishop(W)", "Rook(W)", "Queen(W)", "King(W)",
+        "Pawn(B)", "Knight(B)", "Bishop(B)", "Rook(B)", "Queen(B)", "King(B)"};
+    static constexpr std::array<std::string_view, 16> flag_names = {
         "Quiet",
         "Double",
         "Castle Kingside",

@@ -25,8 +25,9 @@ bool is_in_check(const GameBoard& game_board) {
 }
 }  // namespace
 
-int nega_max(const GameBoard& game_board, int alpha, int beta, int depth,
+int nega_max(const GameBoard& game_board, SearchState& state, int alpha, int beta, int depth,
              int ply) {
+    state.node_count++;
     if (depth == 0) return eval::evaluate(game_board);
 
     MoveList move_list;
@@ -38,23 +39,25 @@ int nega_max(const GameBoard& game_board, int alpha, int beta, int depth,
         if (!copy.make_move(move_list.moves[i])) continue;
         legal_moves++;
 
-        int score = -nega_max(copy, -beta, -alpha, depth - 1, ply + 1);
+        int score = -nega_max(copy, state, -beta, -alpha, depth - 1, ply + 1);
 
         if (score >= beta) return beta;
         if (score > alpha) alpha = score;
     }
 
     if (legal_moves == 0) {
-        return is_in_check(game_board) ? -30000 + ply : 0;
+        return is_in_check(game_board) ? -MATE_SCORE + ply : 0;
     }
 
     return alpha;
 }
 
-u32 search_best(const GameBoard& game_board, int depth) {
+SearchResult search_best(const GameBoard& game_board, int depth) {
+    SearchState state;
+
     u32 best = 0;
-    int alpha = -100000;
-    int beta = 100000;
+    int alpha = INIT_ALPHA;
+    int beta = INIT_BETA;
 
     MoveList move_list;
     movegen::generate_moves(game_board, move_list);
@@ -63,14 +66,14 @@ u32 search_best(const GameBoard& game_board, int depth) {
         GameBoard copy = game_board;
         if (!copy.make_move(move_list.moves[i])) continue;
 
-        int score = -nega_max(copy, -beta, -alpha, depth - 1, 1);
+        int score = -nega_max(copy, state, -beta, -alpha, depth - 1, 1);
         if (score > alpha) {
             alpha = score;
             best = move_list.moves[i];
         }
     }
 
-    return best;
+    return {best, alpha, state.node_count};
 }
 
 }  // namespace search

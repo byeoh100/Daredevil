@@ -22,7 +22,7 @@ namespace eval {
 // K, Q, R, B, N, P, k, q, r, b, n, p
 // no guard against NO_PIECE
 inline constexpr std::array<int, 12> piece_values = {
-    10000, 900, 500, 350, 300, 100, -10000, -900, -500, -350, -300, -100};
+    100, 300, 350, 500, 900, 10000, -100, -300, -350, -500, -900, -10000};
 
 // clang-format off
 // Tables pulled directly from https://chessprogramming.org/Simplified_Evaluation_Function
@@ -106,8 +106,8 @@ inline constexpr std::array<int, 64> king_table = {
 // };
 // clang-format on
 inline constexpr std::array<std::array<int, 64>, 6> piece_tables = {
-    king_table,   queen_table,  rook_table,
-    bishop_table, knight_table, pawn_table};
+    pawn_table, knight_table, bishop_table,
+    rook_table, queen_table, king_table};
 
 int evaluate(const GameBoard& game_board);
 

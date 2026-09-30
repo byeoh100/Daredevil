@@ -1,15 +1,5 @@
 #include "uci.hpp"
 
-#include <exception>
-#include <iostream>
-#include <sstream>
-#include <string>
-
-#include "debug.hpp"
-#include "encoder.hpp"
-#include "movegen.hpp"
-#include "utils.hpp"
-
 namespace uci {
 namespace {
 constexpr std::string_view ENGINE_NAME = "Daredevil";
@@ -100,6 +90,69 @@ void handle_perft(const GameBoard& game_board, int depth) {
     std::cout << "\nNodes searched: " << total_nodes << "\n";
 }
 
+// UCI score: "cp <centipawns>" or "mate <moves>", negative when the side to
+// move is the one getting mated
+std::string format_score(int score) {
+    if (std::abs(score) > search::MATE_SCORE - 1000) {
+        int moves = (search::MATE_SCORE - std::abs(score) + 1) / 2;
+        return "mate " + std::to_string(score > 0 ? moves : -moves);
+    }
+    return "cp " + std::to_string(score);
+}
+
+void print_info(int depth, const search::SearchResult& result, u64 time_ms) {
+    u64 nps = result.node_count * 1000 / std::max<u64>(time_ms, 1);
+    std::cout << "info depth " << depth << " score "
+              << format_score(result.score) << " nodes " << result.node_count
+              << " time " << time_ms << " nps " << nps << " pv "
+              << move_to_uci(result.best_move) << "\n";
+}
+
+u64 elapsed_ms(std::chrono::steady_clock::time_point start) {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::steady_clock::now() - start)
+        .count();
+}
+
+// Fixed positions for bench. Changing this list changes the bench signature,
+// so only append to it deliberately.
+constexpr std::array<std::string_view, 8> BENCH_FENS = {
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+    "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+    "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+    "r1bq1rk1/pp2bppp/2n1pn2/2pp4/3P4/2PBPN2/PP1N1PPP/R1BQ1RK1 w - - 0 9",
+    "6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1",
+    "8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1",
+};
+constexpr int DEFAULT_BENCH_DEPTH = 5;
+
+// bench [depth]: search every bench position to a fixed depth. The total node
+// count is deterministic, so it identifies the search's behaviour exactly.
+void handle_bench(std::istringstream& args) {
+    int depth = DEFAULT_BENCH_DEPTH;
+    args >> depth;
+
+    u64 total_nodes = 0ULL;
+    auto start = std::chrono::steady_clock::now();
+
+    for (std::string_view fen : BENCH_FENS) {
+        GameBoard game_board;
+        game_board.load_from_fen(fen);
+
+        search::SearchResult result = search::search_best(game_board, depth);
+        total_nodes += result.node_count;
+        std::cout << "bestmove " << move_to_uci(result.best_move) << "  nodes "
+                  << result.node_count << "  " << fen << "\n";
+    }
+
+    u64 time_ms = elapsed_ms(start);
+    std::cout << "\nNodes: " << total_nodes << "  Time: " << time_ms
+              << " ms  NPS: " << total_nodes * 1000 / std::max<u64>(time_ms, 1)
+              << "\n";
+}
+
 // go [wtime ..] [btime ..] [movetime ..] [depth ..] ... | go perft <depth>
 void handle_go(const GameBoard& game_board, std::istringstream& args) {
     int depth = 6;
@@ -117,13 +170,18 @@ void handle_go(const GameBoard& game_board, std::istringstream& args) {
         // until search has time management
     }
 
-    u32 best = search::search_best(game_board, depth);
-    if (best == 0) {
+    auto start = std::chrono::steady_clock::now();
+    search::SearchResult result = search::search_best(game_board, depth);
+    u64 time_ms = elapsed_ms(start);
+
+    // No legal moves: the position is already mate or stalemate
+    if (result.best_move == 0) {
         std::cout << "bestmove 0000\n";
         return;
     }
 
-    std::cout << "bestmove " << move_to_uci(best) << "\n";
+    print_info(depth, result, time_ms);
+    std::cout << "bestmove " << move_to_uci(result.best_move) << "\n";
 }
 }  // namespace
 
@@ -152,6 +210,8 @@ void loop() {
             handle_go(game_board, args);
         } else if (command == "stop") {
             // go is synchronous, so there is never a search to stop
+        } else if (command == "bench") {
+            handle_bench(args);
         } else if (command == "d") {
             game_board.print();
         } else if (command == "eval") {

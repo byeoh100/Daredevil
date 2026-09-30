@@ -16,8 +16,8 @@ std::span<const bitboard> GameBoard::get_piece_view() const {
 }
 
 void GameBoard::print() {
-    constexpr std::array<std::string_view, 12> piece_label = {
-        "K", "Q", "R", "B", "N", "P", "k", "q", "r", "b", "n", "p"};
+    static constexpr std::array<std::string_view, 12> piece_label = {
+        "P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k"};
 
     std::vector<std::vector<std::string>> str_board = {
         {"_", "_", "_", "_", "_", "_", "_", "_"},
@@ -191,15 +191,13 @@ void GameBoard::update_boards() {
 
 std::tuple<bitboard, bitboard, bitboard, bitboard, bitboard, bitboard>
 GameBoard::get_piece_set(Color color) const {
-    if (color == WHITE) {
-        return {all_pieces[WHITE_KING],   all_pieces[WHITE_QUEEN],
-                all_pieces[WHITE_ROOK],   all_pieces[WHITE_BISHOP],
-                all_pieces[WHITE_KNIGHT], all_pieces[WHITE_PAWN]};
-    } else {
-        return {all_pieces[BLACK_KING],   all_pieces[BLACK_QUEEN],
-                all_pieces[BLACK_ROOK],   all_pieces[BLACK_BISHOP],
-                all_pieces[BLACK_KNIGHT], all_pieces[BLACK_PAWN]};
-    }
+    return {all_pieces[make_piece(PAWN, color)],
+            all_pieces[make_piece(KNIGHT, color)],
+            all_pieces[make_piece(BISHOP, color)],
+            all_pieces[make_piece(ROOK, color)],
+            all_pieces[make_piece(QUEEN, color)],
+            all_pieces[make_piece(KING, color)]
+        };
 }
 
 void GameBoard::set_castle_rights(u8 cr) { castle_rights = cr; }
@@ -317,4 +315,12 @@ bool GameBoard::make_move(u32 move) {
     }
 
     return true;
+}
+
+Piece GameBoard::piece_on(square sq) const {
+    bitboard piece_board = (1ULL << sq);
+    for (int i = 0; i < 12; i++) {
+        if (piece_board & all_pieces[i]) return static_cast<Piece>(i);
+    }
+    return NO_PIECE;
 }

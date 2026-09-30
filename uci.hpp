@@ -2,7 +2,17 @@
 
 #include <string>
 #include <string_view>
+#include <chrono>
+#include <cstdlib>
+#include <exception>
+#include <iostream>
+#include <sstream>
+#include <string>
 
+#include "debug.hpp"
+#include "encoder.hpp"
+#include "movegen.hpp"
+#include "utils.hpp"
 #include "eval.hpp"
 #include "game.hpp"
 #include "search.hpp"
