@@ -102,7 +102,7 @@ void handle_perft(const GameBoard& game_board, int depth) {
 
 // go [wtime ..] [btime ..] [movetime ..] [depth ..] ... | go perft <depth>
 void handle_go(const GameBoard& game_board, std::istringstream& args) {
-    int depth = 2;
+    int depth = 6;
 
     std::string token;
     while (args >> token) {

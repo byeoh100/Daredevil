@@ -21,7 +21,7 @@
 
 namespace search {
 
-int nega_max(const GameBoard& game_board, int depth);
+int nega_max(const GameBoard& game_board, int alpha, int beta, int ply);
 
 u32 search_best(const GameBoard& game_board, int depth);
 

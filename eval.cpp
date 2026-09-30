@@ -25,5 +25,3 @@ int evaluate(const GameBoard& game_board) {
 }
 
 }  // namespace eval
-
-// note to self: update the makefile to describe the new search + eval

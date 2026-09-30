@@ -53,8 +53,8 @@ int nega_max(const GameBoard& game_board, int alpha, int beta, int depth,
 
 u32 search_best(const GameBoard& game_board, int depth) {
     u32 best = 0;
-    int alpha = -10000;
-    int beta = 10000;
+    int alpha = -100000;
+    int beta = 100000;
 
     MoveList move_list;
     movegen::generate_moves(game_board, move_list);

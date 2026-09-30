@@ -22,7 +22,7 @@ Initial release.
   * Material scoring
   * Piece-square tables (CPW Simplified Evaluation Function)
 * Search
-  * Negamax with alpha-beta pruning at a fixed depth (default 4)
+  * Negamax with alpha-beta pruning at a fixed depth (default 6)
   * Checkmate and stalemate detection, preferring the shortest mate
 * UCI protocol
   * `uci`, `isready`, `ucinewgame`, `position`, `go`, `stop`, `quit`
