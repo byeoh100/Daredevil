@@ -19,7 +19,6 @@
 
 namespace eval {
 
-// K, Q, R, B, N, P, k, q, r, b, n, p
 // no guard against NO_PIECE
 inline constexpr std::array<int, 12> piece_values = {
     100, 300, 350, 500, 900, 10000, -100, -300, -350, -500, -900, -10000};
