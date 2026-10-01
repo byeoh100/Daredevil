@@ -3,7 +3,6 @@
 namespace eval {
 
 int evaluate(const GameBoard& game_board) {
-    int score = 0;
     int mg_score = 0;
     int eg_score = 0;
     int phase = 0;
@@ -26,8 +25,9 @@ int evaluate(const GameBoard& game_board) {
             phase += game_phase_values[type];
         }
     }
-    if (phase > 24) phase = 24;
-    score += (mg_score * phase + eg_score * (24 - phase)) / 24;
+    if (phase > MAX_PHASE) phase = MAX_PHASE;
+    int score =
+        (mg_score * phase + eg_score * (MAX_PHASE - phase)) / MAX_PHASE;
 
     return (game_board.get_to_move() == WHITE) ? score : -score;
 }

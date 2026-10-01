@@ -31,7 +31,8 @@ std::array<bitboard, 6> get_check_squares(const GameBoard& game_board) {
     return check_squares;
 }
 
-void pick_move(MoveList& move_list, std::array<int, 256>& scores, int start) {
+void pick_move(MoveList& move_list, std::array<int, MAX_MOVES>& scores,
+               int start) {
     // lazy selection sort
     int best = start;
     for (int i = start + 1; i < move_list.count; i++) {
@@ -40,11 +41,10 @@ void pick_move(MoveList& move_list, std::array<int, 256>& scores, int start) {
     std::swap(move_list.moves[start], move_list.moves[best]);
     std::swap(scores[start], scores[best]);
 }
-}  // namespace
 
-std::array<int, 256> score_moves(const GameBoard& game_board,
-                                 const MoveList& move_list) {
-    std::array<int, 256> scores;
+std::array<int, MAX_MOVES> score_moves(const GameBoard& game_board,
+                                       const MoveList& move_list) {
+    std::array<int, MAX_MOVES> scores;
     auto check_squares = get_check_squares(game_board);
 
     for (int i = 0; i < move_list.count; i++) {
@@ -54,9 +54,8 @@ std::array<int, 256> score_moves(const GameBoard& game_board,
         PieceType attacker = piece_type(encoder::get_move_piece(move));
         MoveFlag flag = encoder::get_move_flag(move);
 
-        u8 queen_bits = 0b0011;
         if (flag & PROMOTION_BIT) {
-            if ((flag & queen_bits) == queen_bits) {
+            if ((flag & QUEEN_BITS) == QUEEN_BITS) {
                 if (!(flag & CAPTURE_BIT)) score += CAPTURE_BONUS;
                 score += QUEEN * 10;
                 attacker = QUEEN;
@@ -69,12 +68,13 @@ std::array<int, 256> score_moves(const GameBoard& game_board,
         if (flag & CAPTURE_BIT) {
             Piece target_piece = game_board.piece_on(target);
             // MVV LVA
-            (flag == EN_PASSANT)
-                ? score += score_capture(PAWN, PAWN)
-                : score += score_capture(piece_type(target_piece), attacker);
+            score =
+                (flag == EN_PASSANT)
+                    ? score + score_capture(PAWN, PAWN)
+                    : score + score_capture(piece_type(target_piece), attacker);
         }
 
-        if (check_squares[attacker] & (1ULL << target)) score += 4000;
+        if (check_squares[attacker] & (1ULL << target)) score += CHECK_BONUS;
 
         scores[i] = score;
     }
@@ -108,12 +108,12 @@ int quiescence(const GameBoard& game_board, SearchState& state, int alpha,
 
     return alpha;
 }
+}  // namespace
 
 int nega_max(const GameBoard& game_board, SearchState& state, int alpha,
              int beta, int depth, int ply) {
     if (depth == 0 || ply >= MAX_PLY)
         return quiescence(game_board, state, alpha, beta);
-    if (depth == 0) return quiescence(game_board, state, alpha, beta);
     state.node_count++;
 
     MoveList move_list;

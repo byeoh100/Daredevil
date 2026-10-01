@@ -50,7 +50,7 @@ find . -type f \( -name "*.cpp" -o -name "*.hpp" \) | xargs clang-format -style=
 5. The piece order will be pawn, knight, bishop, rook, queen, king as denoted in the `PieceType` enumeration. This applies to enumerations, lookup tables, tuples and their bindings, move generation, and the order of code sections.
 
 ## Naming
-1. All functions and variables will be snake_case. Constants and enumeration values will be SCREAMING_SNAKE_CASE.
+1. All functions and variables will be snake_case. Scalar constants and enumeration values will be SCREAMING_SNAKE_CASE; constant tables will be snake_case.
 
 2. All getters will be prefixed with `get_` and singular. A getter that returns a collection is named for the collection as one thing.
     * Ex. `get_rook_attack()`, `get_piece_set()`, `get_piece_view()`

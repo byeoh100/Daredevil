@@ -5,6 +5,10 @@ Daredevil is a UCI-compliant chess engine designed with a goal to focus on piece
 Most, if not all, of the techniques implemented are based on the information provided or derived from [Chess Programming Wiki (CPW)](https://chessprogramming.org/). A reference engine called [Bit Board Chess (BBC)](https://github.com/maksimKorzh/bbc) was also used as a guideline for project structure and direction.
 
 ## Current Build Direction
+* Time management
+  * Early stops to search
+* Refining search
+  * Iterative deepening
 
 All prior updates to the engine can be found in `CHANGELOG.md`.
 

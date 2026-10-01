@@ -277,6 +277,7 @@ enum MoveFlag : u8 {
 inline constexpr u8 CASTLE_BIT = 0b0010;
 inline constexpr u8 CAPTURE_BIT = 0b0100;
 inline constexpr u8 PROMOTION_BIT = 0b1000;
+inline constexpr u8 QUEEN_BITS = 0b0011;
 
 struct Move {
     square source = NO_SQUARE;
@@ -305,3 +306,5 @@ struct MoveList {
         return 0;
     }
 };
+
+inline constexpr int MAX_MOVES = 256;

@@ -21,7 +21,6 @@ namespace eval {
 
 // Values and tables pulled directly from
 // https://chessprogramming.org/PeSTO's_Evaluation_Function
-// no guard against NO_PIECE
 inline constexpr std::array<int, 6> mg_piece_values = {82,  337,  365,
                                                        477, 1025, 0};
 inline constexpr std::array<int, 6> eg_piece_values = {94,  281, 297,
@@ -168,6 +167,7 @@ inline constexpr std::array<std::array<int, 64>, 6> eg_piece_tables = {
     eg_rook_table, eg_queen_table,  eg_king_table};
 
 inline constexpr std::array<int, 6> game_phase_values = {0, 1, 1, 2, 4, 0};
+inline constexpr int MAX_PHASE = 24;
 
 int evaluate(const GameBoard& game_board);
 
