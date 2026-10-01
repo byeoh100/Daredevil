@@ -103,9 +103,9 @@ std::string format_score(int score) {
 void print_info(int depth, const search::SearchResult& result, u64 time_ms) {
     u64 nps = result.node_count * 1000 / std::max<u64>(time_ms, 1);
     std::cout << "info depth " << depth << " score "
-              << format_score(result.evaluation) << " nodes " << result.node_count
-              << " time " << time_ms << " nps " << nps << " pv "
-              << move_to_uci(result.best_move) << "\n";
+              << format_score(result.evaluation) << " nodes "
+              << result.node_count << " time " << time_ms << " nps " << nps
+              << " pv " << move_to_uci(result.best_move) << "\n";
 }
 
 u64 elapsed_ms(std::chrono::steady_clock::time_point start) {
@@ -143,8 +143,9 @@ void handle_bench(std::istringstream& args) {
 
         search::SearchResult result = search::search_best(game_board, depth);
         total_nodes += result.node_count;
-        std::cout << "bestmove " << move_to_uci(result.best_move) << "  nodes "
-                  << result.node_count << "  " << fen << "\n";
+        std::cout << "bestmove " << move_to_uci(result.best_move) << "  score "
+                  << result.evaluation << "  nodes " << result.node_count
+                  << "  " << fen << "\n";
     }
 
     u64 time_ms = elapsed_ms(start);

@@ -15,17 +15,19 @@ bool is_in_check(const GameBoard& game_board) {
 std::array<bitboard, 6> get_check_squares(const GameBoard& game_board) {
     Color us = game_board.get_to_move();
     Color them = (us == WHITE) ? BLACK : WHITE;
-    square king_sq = std::countr_zero(game_board.get_piece(make_piece(KING, them)));
+    square king_sq =
+        std::countr_zero(game_board.get_piece(make_piece(KING, them)));
     bitboard occupancy = game_board.get_occupancy();
 
     std::array<bitboard, 6> check_squares{};
-    // our pawn attacks king_sq exactly when their pawn on king_sq would attack it
+    // our pawn attacks king_sq exactly when their pawn on king_sq would attack
+    // it
     check_squares[PAWN] = movegen::get_pawn_attack(king_sq, them);
     check_squares[KNIGHT] = movegen::get_knight_attack(king_sq);
     check_squares[BISHOP] = movegen::get_bishop_attack(king_sq, occupancy);
     check_squares[ROOK] = movegen::get_rook_attack(king_sq, occupancy);
     check_squares[QUEEN] = check_squares[BISHOP] | check_squares[ROOK];
-    check_squares[KING] = 0ULL; // a king can never give check
+    check_squares[KING] = 0ULL;  // a king can never give check
     return check_squares;
 }
 
@@ -40,7 +42,8 @@ void pick_move(MoveList& move_list, std::array<int, 256>& scores, int start) {
 }
 }  // namespace
 
-std::array<int, 256> score_moves(const GameBoard& game_board, const MoveList& move_list) {
+std::array<int, 256> score_moves(const GameBoard& game_board,
+                                 const MoveList& move_list) {
     std::array<int, 256> scores;
     auto check_squares = get_check_squares(game_board);
 
@@ -57,8 +60,7 @@ std::array<int, 256> score_moves(const GameBoard& game_board, const MoveList& mo
                 if (!(flag & CAPTURE_BIT)) score += CAPTURE_BONUS;
                 score += QUEEN * 10;
                 attacker = QUEEN;
-            }
-            else {
+            } else {
                 scores[i] = UNDERPROMOTION_SCORE;
                 continue;
             }
@@ -67,9 +69,9 @@ std::array<int, 256> score_moves(const GameBoard& game_board, const MoveList& mo
         if (flag & CAPTURE_BIT) {
             Piece target_piece = game_board.piece_on(target);
             // MVV LVA
-            (flag == EN_PASSANT) ?
-                score += score_capture(PAWN, PAWN) :
-                score += score_capture(piece_type(target_piece), attacker);
+            (flag == EN_PASSANT)
+                ? score += score_capture(PAWN, PAWN)
+                : score += score_capture(piece_type(target_piece), attacker);
         }
 
         if (check_squares[attacker] & (1ULL << target)) score += 4000;
@@ -80,10 +82,39 @@ std::array<int, 256> score_moves(const GameBoard& game_board, const MoveList& mo
     return scores;
 }
 
-int nega_max(const GameBoard& game_board, SearchState& state, int alpha, int beta, int depth,
-             int ply) {
+int quiescence(const GameBoard& game_board, SearchState& state, int alpha,
+               int beta) {
     state.node_count++;
-    if (depth == 0) return eval::evaluate(game_board);
+    int stand_pat = eval::evaluate(game_board);
+    if (stand_pat >= beta) return beta;
+    if (stand_pat > alpha) alpha = stand_pat;
+
+    MoveList move_list;
+    movegen::generate_moves(game_board, move_list);
+    auto scores = score_moves(game_board, move_list);
+
+    for (int i = 0; i < move_list.count; i++) {
+        pick_move(move_list, scores, i);
+        if (scores[i] < CAPTURE_BONUS - 100) break;
+
+        GameBoard copy = game_board;
+        if (!copy.make_move(move_list.moves[i])) continue;
+
+        int evaluation = -quiescence(copy, state, -beta, -alpha);
+
+        if (evaluation >= beta) return beta;
+        if (evaluation > alpha) alpha = evaluation;
+    }
+
+    return alpha;
+}
+
+int nega_max(const GameBoard& game_board, SearchState& state, int alpha,
+             int beta, int depth, int ply) {
+    if (depth == 0 || ply >= MAX_PLY)
+        return quiescence(game_board, state, alpha, beta);
+    if (depth == 0) return quiescence(game_board, state, alpha, beta);
+    state.node_count++;
 
     MoveList move_list;
     movegen::generate_moves(game_board, move_list);
@@ -96,10 +127,12 @@ int nega_max(const GameBoard& game_board, SearchState& state, int alpha, int bet
         if (!copy.make_move(move_list.moves[i])) continue;
         legal_moves++;
 
-        int score = -nega_max(copy, state, -beta, -alpha, depth - 1, ply + 1);
+        int extension = is_in_check(copy) ? 1 : 0;
+        int evaluation = -nega_max(copy, state, -beta, -alpha,
+                                   depth - 1 + extension, ply + 1);
 
-        if (score >= beta) return beta;
-        if (score > alpha) alpha = score;
+        if (evaluation >= beta) return beta;
+        if (evaluation > alpha) alpha = evaluation;
     }
 
     if (legal_moves == 0) {
@@ -125,7 +158,9 @@ SearchResult search_best(const GameBoard& game_board, int depth) {
         GameBoard copy = game_board;
         if (!copy.make_move(move_list.moves[i])) continue;
 
-        int evaluation = -nega_max(copy, state, -beta, -alpha, depth - 1, 1);
+        int extension = is_in_check(copy) ? 1 : 0;
+        int evaluation =
+            -nega_max(copy, state, -beta, -alpha, depth - 1 + extension, 1);
         if (evaluation > alpha) {
             alpha = evaluation;
             best = move_list.moves[i];

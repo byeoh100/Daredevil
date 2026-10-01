@@ -196,8 +196,7 @@ GameBoard::get_piece_set(Color color) const {
             all_pieces[make_piece(BISHOP, color)],
             all_pieces[make_piece(ROOK, color)],
             all_pieces[make_piece(QUEEN, color)],
-            all_pieces[make_piece(KING, color)]
-        };
+            all_pieces[make_piece(KING, color)]};
 }
 
 void GameBoard::set_castle_rights(u8 cr) { castle_rights = cr; }

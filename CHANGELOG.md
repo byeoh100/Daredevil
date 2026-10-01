@@ -3,6 +3,22 @@ This changelog documents all notable additions and changes between each successi
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-01
+### Added
+* Refine evaluation
+  * Middlegame and endgame boards with a tapered evaluation function (PeSTO)
+* Refine search
+  * Move ordering
+    * MVV-LVA
+    * Queen promotion prioritization
+  * Quiescence search
+  * Check extension
+* UCI interface
+  * `info` output (depth, score, nodes, time, nps, pv) and `bench` command
+  * FEN validation: rejects positions where the side not to move is in check
+### Results
+Elo difference: 485.8 +/- 74.4 vs 0.1.0.
+
 ## [0.1.0] - 2026-09-29
 Initial release.
 

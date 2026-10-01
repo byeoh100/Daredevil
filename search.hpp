@@ -31,6 +31,8 @@ struct SearchResult {
     u64 node_count = 0ULL;
 };
 
+inline constexpr int MAX_PLY = 64;
+
 inline constexpr int INIT_ALPHA = -100000;
 inline constexpr int INIT_BETA = 100000;
 inline constexpr int MATE_SCORE = 32000;
@@ -42,8 +44,12 @@ constexpr int score_capture(PieceType victim, PieceType attacker) {
     return CAPTURE_BONUS + (victim * 10) - attacker;
 }
 
-std::array<int, 256> score_moves(const GameBoard& game_board, const MoveList& move_list);
-int nega_max(const GameBoard& game_board, SearchState& state, int alpha, int beta, int depth, int ply);
+std::array<int, 256> score_moves(const GameBoard& game_board,
+                                 const MoveList& move_list);
+int quiescence(const GameBoard& game_board, SearchState& state, int alpha,
+               int beta);
+int nega_max(const GameBoard& game_board, SearchState& state, int alpha,
+             int beta, int depth, int ply);
 SearchResult search_best(const GameBoard& game_board, int depth);
 
 }  // namespace search
