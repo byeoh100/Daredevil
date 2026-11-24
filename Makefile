@@ -41,3 +41,9 @@ clean:
 
 run: engine
 	./engine
+
+# Perft regression suite (tests/perft.epd); also what CI runs
+test: $(TARGET)
+	python3 tests/perft.py ./$(TARGET)
+
+.PHONY: clean run test

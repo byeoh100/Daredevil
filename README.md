@@ -1,5 +1,7 @@
 # Daredevil
-Daredevil is a UCI-compliant chess engine designed with a goal to focus on piece sacrifices and winning from materially deficit positions.
+[![Perft](https://github.com/byeoh100/bitmap-chess/actions/workflows/perft.yml/badge.svg)](https://github.com/byeoh100/bitmap-chess/actions/workflows/perft.yml)
+
+Daredevil is a UCI-targeted chess engine designed with a goal to focus on piece sacrifices and winning from materially deficit positions.
 
 ## References
 Most, if not all, of the techniques implemented are based on the information provided or derived from [Chess Programming Wiki (CPW)](https://chessprogramming.org/). A reference engine called [Bit Board Chess (BBC)](https://github.com/maksimKorzh/bbc) was also used as a guideline for project structure and direction.
@@ -15,7 +17,9 @@ All prior updates to the engine can be found in `CHANGELOG.md`.
 ## Perft results
 Daredevil's ability to generate correct moves has been validated through comparing perft results to the pre-determined results on [CPW](https://chessprogramming.org/Perft_Results).
 
-The results of the most recent test on the game start position produced with `debug::perft_test()`:
+This is enforced by CI: on every push and pull request, [GitHub Actions](.github/workflows/perft.yml) builds the engine and runs the [perft suite](tests/perft.epd), all six CPW reference positions plus the mirrored position 4, checking every depth up to 5-7 (over 800 million leaf nodes). Any mismatch fails the build.
+
+The results of the most recent test on the game start position:
 ```
 // ...
 
@@ -41,8 +45,15 @@ Requirements:
 Make, run, and start with:
 ```
 make run
-position startpos
-go depth 4
 ```
 
-Daredevil is UCI-compliant, meaning it can be easily plugged into any open source chess GUI for a visual representation. [Cute Chess](https://github.com/cutechess/cutechess) is recommended.
+Run the perft suite (requires Python 3):
+```
+make test
+```
+
+You can also manually run starting position perft tests with:
+```
+position startpos
+go depth <depth>
+```
