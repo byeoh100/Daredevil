@@ -3,22 +3,33 @@
 namespace eval {
 
 int evaluate(const GameBoard& game_board) {
-    int score = 0;
+    int mg_score = 0;
+    int eg_score = 0;
+    int phase = 0;
     const auto pieces = game_board.get_piece_view();
-    for (size_t i = 0; i < 12; i++) {
-        int piece_count = 0;
-        bitboard piece_board = pieces[i];
+    for (int i = 0; i < 12; i++) {
+        Piece piece = static_cast<Piece>(i);
+        PieceType type = piece_type(piece);
+        bitboard piece_board = pieces[piece];
+        bool is_white = (piece_color(piece) == WHITE);
 
         while (piece_board) {
             square sq = utils::pop_lsb(piece_board);
-            (i < 6) ? score += piece_tables[i][sq] : score -= piece_tables[i - 6][sq ^ 56]; // flip the orientation to black
-            piece_count++;
-        }
+            square table_sq = is_white ? sq : sq ^ 56;
 
-        score += piece_count * piece_values[i];
+            int mg = mg_piece_values[type] + mg_piece_tables[type][table_sq];
+            int eg = eg_piece_values[type] + eg_piece_tables[type][table_sq];
+            mg_score += is_white ? mg : -mg;
+            eg_score += is_white ? eg : -eg;
+
+            phase += game_phase_values[type];
+        }
     }
+    if (phase > MAX_PHASE) phase = MAX_PHASE;
+    int score =
+        (mg_score * phase + eg_score * (MAX_PHASE - phase)) / MAX_PHASE;
 
     return (game_board.get_to_move() == WHITE) ? score : -score;
 }
 
-} // namespace eval
+}  // namespace eval

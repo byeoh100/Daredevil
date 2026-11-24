@@ -90,6 +90,7 @@ void init_all_pieces();
 // --------------------------------
 // @@@ IN-GAME MOVE GENERATION @@@
 // --------------------------------
+
 void generate_moves(const GameBoard& game_board, MoveList& move_list);
 bool is_sq_attacked(square sq, const GameBoard& game_board, Color color);
 bitboard get_legal_king_attack(square sq, const GameBoard& game_board,

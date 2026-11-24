@@ -6,20 +6,13 @@ Daredevil is a UCI-targeted chess engine designed with a goal to focus on piece 
 ## References
 Most, if not all, of the techniques implemented are based on the information provided or derived from [Chess Programming Wiki (CPW)](https://chessprogramming.org/). A reference engine called [Bit Board Chess (BBC)](https://github.com/maksimKorzh/bbc) was also used as a guideline for project structure and direction.
 
-## Current Build State
-* Move generation and board representation
-  * Loading from FEN notation
-  * Bitboard representation of pieces
-    * Print functions for readability and debugging
-  * Pre-calculated attack tables
-    * Leaper pieces using basic bitwise logic
-    * Slider pieces using magics
-      * Hardcoded magics
-      * Generator for unique magic values
-  * Move encoding as integers
-  * Move generation validation with performance test (perft) functions
-  * UCI protocol
-    * Tested with Cute Chess (random legal moves until search is added)
+## Current Build Direction
+* Time management
+  * Early stops to search
+* Refining search
+  * Iterative deepening
+
+All prior updates to the engine can be found in `CHANGELOG.md`.
 
 ## Perft results
 Daredevil's ability to generate correct moves has been validated through comparing perft results to the pre-determined results on [CPW](https://chessprogramming.org/Perft_Results).
@@ -42,14 +35,14 @@ Depth: 7
 Total nodes: 3195901860
 Time: 98671 ms
 ```
-These give a calculation speed of about ~34 million nodes per second (nps).
+These give a calculation speed of ~34 million nodes per second (nps).
 
 ## Quick Start
 Requirements:
 * GCC/G++ with C++23
 * make
 
-Make and run with:
+Make, run, and start with:
 ```
 make run
 ```
@@ -57,4 +50,10 @@ make run
 Run the perft suite (requires Python 3):
 ```
 make test
+```
+
+You can also manually run starting position perft tests with:
+```
+position startpos
+go depth <depth>
 ```

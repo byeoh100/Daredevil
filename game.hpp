@@ -50,6 +50,8 @@ public:
     std::tuple<bitboard, bitboard, bitboard, bitboard, bitboard, bitboard>
     get_piece_set(Color color) const;
 
+    Piece piece_on(square sq) const;
+
     bool make_move(u32 move);
 
     void init();

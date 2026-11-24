@@ -419,7 +419,7 @@ void generate_moves(const GameBoard& game_board, MoveList& move_list) {
     square target;
 
     // Get the pieces that can move
-    auto [king, queen, rook, bishop, knight, pawn] =
+    auto [pawn, knight, bishop, rook, queen, king] =
         game_board.get_piece_set(color);
 
     auto friendly_pieces = (color == WHITE) ? game_board.get_white_board()
@@ -629,7 +629,7 @@ bool is_sq_attacked(square sq, const GameBoard& game_board, Color color) {
     bitboard blocker_board = game_board.get_occupancy();
 
     // Get the pieces attacking COLOR
-    auto [king, queen, rook, bishop, knight, pawn] =
+    auto [pawn, knight, bishop, rook, queen, king] =
         game_board.get_piece_set(color == WHITE ? BLACK : WHITE);
 
     if (

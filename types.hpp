@@ -16,23 +16,43 @@ using bitboard = u64;
 
 enum Color { WHITE, BLACK };
 
-enum PieceType { KING, QUEEN, ROOK, BISHOP, KNIGHT, PAWN, NO_PIECE_TYPE };
+enum PieceType { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, NO_PIECE_TYPE };
 
+// assess the idea of rewriting all for loops that iterate over all pieces
+// perhaps have array with allpieces
+// then we might need for piece type
+// just check if there are enough loops that don't use i as a plain int
 enum Piece {
-    WHITE_KING,
-    WHITE_QUEEN,
-    WHITE_ROOK,
-    WHITE_BISHOP,
-    WHITE_KNIGHT,
     WHITE_PAWN,
-    BLACK_KING,
-    BLACK_QUEEN,
-    BLACK_ROOK,
-    BLACK_BISHOP,
-    BLACK_KNIGHT,
+    WHITE_KNIGHT,
+    WHITE_BISHOP,
+    WHITE_ROOK,
+    WHITE_QUEEN,
+    WHITE_KING,
     BLACK_PAWN,
+    BLACK_KNIGHT,
+    BLACK_BISHOP,
+    BLACK_ROOK,
+    BLACK_QUEEN,
+    BLACK_KING,
     NO_PIECE
 };
+
+// rewrite 0.1.0 logic with this
+// Get color agnostic piece
+constexpr PieceType piece_type(Piece piece) {
+    return static_cast<PieceType>(piece % 6);
+}
+
+// Get color of piece
+constexpr Color piece_color(Piece piece) {
+    return static_cast<Color>(piece / 6);
+}
+
+// Make a colored piece
+constexpr Piece make_piece(PieceType piece_type, Color color) {
+    return static_cast<Piece>(color * 6 + piece_type);
+}
 
 // rank:
 // 7
@@ -257,6 +277,7 @@ enum MoveFlag : u8 {
 inline constexpr u8 CASTLE_BIT = 0b0010;
 inline constexpr u8 CAPTURE_BIT = 0b0100;
 inline constexpr u8 PROMOTION_BIT = 0b1000;
+inline constexpr u8 QUEEN_BITS = 0b0011;
 
 struct Move {
     square source = NO_SQUARE;
@@ -285,3 +306,5 @@ struct MoveList {
         return 0;
     }
 };
+
+inline constexpr int MAX_MOVES = 256;
