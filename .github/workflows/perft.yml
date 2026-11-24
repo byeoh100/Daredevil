@@ -1,0 +1,34 @@
+name: Perft
+
+# Every push to any branch, every pull request, and manual runs from the
+# Actions tab
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  perft:
+    name: Build and verify move generation
+    # Pinned rather than ubuntu-latest so the compiler only changes when we
+    # choose to update it
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Show toolchain versions
+        run: |
+          g++ --version
+          python3 --version
+
+      - name: Build engine
+        run: make -j"$(nproc)"
+
+      - name: Run perft suite
+        run: make test

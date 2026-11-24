@@ -1,4 +1,6 @@
 # Daredevil
+[![Perft](https://github.com/byeoh100/bitmap-chess/actions/workflows/perft.yml/badge.svg)](https://github.com/byeoh100/bitmap-chess/actions/workflows/perft.yml)
+
 Daredevil is a UCI-targeted chess engine designed with a goal to focus on piece sacrifices and winning from materially deficit positions.
 
 ## References
@@ -21,6 +23,8 @@ Most, if not all, of the techniques implemented are based on the information pro
 
 ## Perft results
 Daredevil's ability to generate correct moves has been validated through comparing perft results to the pre-determined results on [CPW](https://chessprogramming.org/Perft_Results).
+
+This is enforced by CI: on every push and pull request, [GitHub Actions](.github/workflows/perft.yml) builds the engine and runs the [perft suite](tests/perft.epd), all six CPW reference positions plus the mirrored position 4, checking every depth up to 5-7 (over 800 million leaf nodes). Any mismatch fails the build.
 
 The results of the most recent test on the game start position:
 ```
@@ -48,4 +52,9 @@ Requirements:
 Make and run with:
 ```
 make run
+```
+
+Run the perft suite (requires Python 3):
+```
+make test
 ```
